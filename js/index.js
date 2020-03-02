@@ -4913,3 +4913,16 @@ function addHeaderForTS() {
     });
     syncSettelmentVoucherHeader(enableDivBasedOnStatus);
 }
+
+function choose(){
+
+    window.plugins.mfilechooser.open([], function (uri) {
+
+      alert(uri);
+
+    }, function (error) {
+
+        alert(error);
+
+    });
+}
