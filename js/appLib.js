@@ -43,8 +43,41 @@
          document.addEventListener('onSMSArrive', function(e) {
              saveIncomingSMSOnLocal(e);
          }, false);
+      
      }
  };
+
+ function getCurrentLocation(){
+     navigator.geolocation.getCurrentPosition(onSuccess, onError);
+ }
+
+  var onSuccess = function(position) {
+        /*alert('Latitude: '          + position.coords.latitude          + '\n' +
+              'Longitude: '         + position.coords.longitude         + '\n' +
+              'Altitude: '          + position.coords.altitude          + '\n' +
+              'Accuracy: '          + position.coords.accuracy          + '\n' +
+              'Altitude Accuracy: ' + position.coords.altitudeAccuracy  + '\n' +
+              'Heading: '           + position.coords.heading           + '\n' +
+              'Speed: '             + position.coords.speed             + '\n' +
+              'Timestamp: '         + position.timestamp                + '\n');*/
+
+        window.localStorage.setItem("source_coordinates", position.coords.longitude+","+position.coords.latitude);
+
+
+        if(window.localStorage.getItem("source_coordinates") != ""){
+                addr_put(window.localStorage.getItem("source_coordinates"));
+        }else{
+            alert("Current location not mapped.");
+        }
+    };
+
+    // onError Callback receives a PositionError object
+    //
+    function onError(error) {
+        alert('code: '    + error.code    + '\n' +
+              'message: ' + error.message + '\n');
+    }
+
 
  function goBack() {
      var currentUser = getUserID();
@@ -186,9 +219,9 @@ function arrayRemove(arr, value) {
 
         // ****************     Approval Table      ***************** //
 
-         t.executeSql("CREATE TABLE IF NOT EXISTS BEHeader ( busExpHeaderId INTEGER ,busExpNumber TEXT,accHeadId INTEGER REFERENCES accountHeadMst(accHeadId),accHeadDesc TEXT,voucherDate DATE,startDate DATE,endDate DATE,currencyId INTEGER REFERENCES currencyMst(currencyId),currencyName TEXT,editorTotalAmt DOUBLE,vocherStatus TEXT, currentOwnerId INTEGER, currentOwnerName TEXT,  createdById INTEGER, creatorName TEXT,rejectionComments TEXT,query TEXT,queryId INTEGER)");
+         t.executeSql("CREATE TABLE IF NOT EXISTS BEHeader ( busExpHeaderId INTEGER ,busExpNumber TEXT,accHeadId INTEGER REFERENCES accountHeadMst(accHeadId),accHeadDesc TEXT,voucherDate DATE,startDate DATE,endDate DATE,currencyId INTEGER REFERENCES currencyMst(currencyId),currencyName TEXT,editorTotalAmt DOUBLE,vocherStatus TEXT, currentOwnerId INTEGER, currentOwnerName TEXT,  createdById INTEGER, creatorName TEXT,rejectionComments TEXT,query TEXT,queryId INTEGER,queryAns TEXT , workflowToBeFollowed TEXT)");
          t.executeSql("CREATE TABLE IF NOT EXISTS BEDetails (busExpDetailId INTEGER ,busExpHeaId INTEGER , expNameId INTEGER REFERENCES expNameMst(expNameId), expName  TEXT,expDate DATE,currencyId INTEGER REFERENCES currencyMst(currencyId),currencyName TEXT, perUnit INTEGER,fromLocation TEXT,toLocation TEXT,convertedAmt DOUBLE ,expAttachment BLOB)");
-         t.executeSql("CREATE TABLE IF NOT EXISTS TravelHeader (headerId INTEGER ,voucherNumber TEXT,accHeadId INTEGER REFERENCES accountHeadMst(accHeadId),accHeadDesc TEXT,voucherDate DATE,startDate DATE,endDate DATE,currencyId INTEGER REFERENCES currencyMst(currencyId),currencyName TEXT,editorTotalAmt DOUBLE,vocherStatus TEXT, currentOwnerId INTEGER, currentOwnerName TEXT,  createdById INTEGER, creatorName TEXT,rejectionComments TEXT, iternaryType TEXT , toLocation TEXT, fromLocation TEXT, travelType TEXT, travelTitle TEXT, query TEXT,queryId INTEGER)");
+         t.executeSql("CREATE TABLE IF NOT EXISTS TravelHeader (headerId INTEGER ,voucherNumber TEXT,accHeadId INTEGER REFERENCES accountHeadMst(accHeadId),accHeadDesc TEXT,voucherDate DATE,startDate DATE,endDate DATE,currencyId INTEGER REFERENCES currencyMst(currencyId),currencyName TEXT,editorTotalAmt DOUBLE,vocherStatus TEXT, currentOwnerId INTEGER, currentOwnerName TEXT,  createdById INTEGER, creatorName TEXT,rejectionComments TEXT, iternaryType TEXT , toLocation TEXT, fromLocation TEXT, travelType TEXT, travelTitle TEXT, query TEXT,queryId INTEGER,queryAns TEXT, workflowToBeFollowed TEXT)");
 
      });
  } else {
@@ -612,7 +645,8 @@ function arrayRemove(arr, value) {
 
      mytable = j('<table></table>').attr({
          id: "source",
-         class: ["table", "table-striped", "table-bordered"].join(' ')
+         class: ["table", "table-striped", "table-bordered" ],
+         style:["overflow-x: auto;display: inline-block;"].join(' ')
      });
 
      var rowThead = j("<thead></thead>").appendTo(mytable);
@@ -621,16 +655,17 @@ function arrayRemove(arr, value) {
      }).appendTo(rowThead);
 
      j('<th lang=\'en\'></th>').text("Date").appendTo(rowTh);
+     j('<th lang=\'en\'></th>').text("TR").appendTo(rowTh);
      j('<th lang=\'en\'></th>').text("Expense Name").appendTo(rowTh);
      j('<th lang=\'en\'></th>').text("Amt").appendTo(rowTh);
-     j('<th lang=\'en\'></th>').text("cityTown").appendTo(rowTh);
+     j('<th lang=\'en\'></th>').text("CityTown").appendTo(rowTh);
      j('<th lang=\'en\'></th>').text("Narration").appendTo(rowTh);
 
      var cols = new Number(4);
 
      mydb.transaction(function(t) {
 
-         t.executeSql('select * from travelSettleExpDetails inner join cityTownMst on cityTownMst.cityTownId = travelSettleExpDetails.cityTownId inner join currencyMst on travelSettleExpDetails.currencyId = currencyMst.currencyId inner join travelExpenseNameMst on travelExpenseNameMst.id = travelSettleExpDetails.expNameId;', [],
+         t.executeSql('select * from travelSettleExpDetails inner join cityTownMst on cityTownMst.cityTownId = travelSettleExpDetails.cityTownId inner join currencyMst on travelSettleExpDetails.currencyId = currencyMst.currencyId inner join travelExpenseNameMst on travelExpenseNameMst.id = travelSettleExpDetails.expNameId  inner join travelRequestDetails on travelRequestDetails.travelRequestId = travelSettleExpDetails.travelRequestId;', [],
              function(transaction, result) {
 
                  if (result != null && result.rows != null) {
@@ -639,7 +674,24 @@ function arrayRemove(arr, value) {
 
                          var row = result.rows.item(i);
 
-                         var newDateFormat = reverseConvertDate(row.expDate.substring(0, 2)) + "-" + row.expDate.substring(3, 5) + " " + row.expDate.substring(6, 10);
+                        var newDateFormat = getDateForDetailLine(row.expDate);
+                        var length = row.travelRequestNo.length;
+                        var trNo = (row.travelRequestNo).substr(length-2);
+
+                        var narration = row.expNarration;
+
+                        if(narration > '8'){
+                           narration = narration.substring(0,5)+"..";
+                        }
+
+                        var attachmentLength = row.tsExpAttachment.length;
+                        //attachmentLength = attachmentLength+1;
+
+                        var cityTown = row.cityTownName;
+
+                        if(cityTown > '9'){
+                           cityTown = cityTown.substring(0,6)+"..";
+                        }
 
                          var rowss = j('<tr></tr>').attr({
                              class: ["test"].join(' ')
@@ -649,6 +701,10 @@ function arrayRemove(arr, value) {
                              class: ["expDate"].join(' ')
                          }).html('<p style="color: black;">' + newDateFormat + '</P>').appendTo(rowss);
                          j('<td></td>').attr({
+                             class: ["trNo"].join(' ')
+                         }).html('<p style="color: black;">' + trNo + '</P>').appendTo(rowss);
+                         
+                         j('<td></td>').attr({
                              class: ["expenseName"].join(' ')
                          }).html('<p style="color: black;">' + row.expenseName + '</P>').appendTo(rowss).appendTo(rowss);
 
@@ -657,16 +713,16 @@ function arrayRemove(arr, value) {
                          }).html('<p style="color: black;">' + row.expAmt + ' ' + row.currencyName + '</P>').appendTo(rowss);
                          j('<td></td>').attr({
                              class: ["cityTownName"].join(' ')
-                         }).html('<p style="color: black;">' + row.cityTownName + '</P>').appendTo(rowss);
+                         }).html('<p style="color: black;">' + cityTown + '</P>').appendTo(rowss);
 
-                         if (row.tsExpAttachment.length == 0) {
+                         if (attachmentLength == 0) {
                              j('<td></td>').attr({
                                  class: ["expNarration"].join(' ')
-                             }).html('<p style="color: black;">' + row.expNarration + '</P>').appendTo(rowss);
+                             }).html('<p style="color: black;">' + narration + '</P>').appendTo(rowss);
                          } else {
                              j('<td></td>').attr({
                                  class: ["expNarration"].join(' ')
-                             }).html('<p style="color: black;">' + row.expNarration + '</P><img src="images/attach.png" width="25px" height="25px">').appendTo(rowss);
+                             }).html('<p style="color: black;">' + narration + '</P><img src="images/attach.png" width="25px" height="25px">').appendTo(rowss);
                          }
                          j('<td></td>').attr({
                              class: ["expDate1", "displayNone"].join(' ')
@@ -1344,7 +1400,7 @@ function arrayRemove(arr, value) {
  }
 
  function setUserSessionDetails(val, userJSON) {
-     //alert("buss : "+val.mobileEC);
+     window.localStorage.setItem("TravelDesk", val.travelDesk);
      window.localStorage.setItem("TrRole", val.TrRole);
      window.localStorage.setItem("EmployeeId", val.EmpId);
      window.localStorage.setItem("FirstName", val.FirstName);
@@ -1360,9 +1416,7 @@ function arrayRemove(arr, value) {
          window.localStorage.setItem("APPLICATION_VERSION", val.APPLICATION_VERSION);
          var versionNumber = parseFloat(val.APPLICATION_VERSION.match(/[\d\.]+/));
          window.localStorage.setItem("versionNumber", versionNumber);
-     }
-
-     //For Mobile Google Map Role Start
+     }     //For Mobile Google Map Role Start
      //End
      if (!val.hasOwnProperty('MobileMapRole')) {
          window.localStorage.setItem("MobileMapRole", false);
@@ -2689,7 +2743,8 @@ function arrayRemove(arr, value) {
      j('#source').remove();
      mytable = j('<table></table>').attr({
          id: "source",
-         class: ["table", "table-striped", "table-bordered"].join(' ')
+         class: ["table", "table-striped", "table-bordered"],
+         style:["overflow-x: auto;display: inline-block;"].join(' ')
      });
 
      var rowThead = j("<thead></thead>").appendTo(mytable);
@@ -2698,16 +2753,17 @@ function arrayRemove(arr, value) {
      }).appendTo(rowThead);
 
      j('<th lang=\'en\'></th>').text("Date").appendTo(rowTh);
+     j('<th lang=\'en\'></th>').text("TR").appendTo(rowTh);
      j('<th lang=\'en\'></th>').text("Expense Name").appendTo(rowTh);
      j('<th lang=\'en\'></th>').text("Amt").appendTo(rowTh);
-     j('<th lang=\'en\'></th>').text("cityTown").appendTo(rowTh);
+     j('<th lang=\'en\'></th>').text("CityTown").appendTo(rowTh);
      j('<th lang=\'en\'></th>').text("Narration").appendTo(rowTh);
 
      var cols = new Number(4);
 
      mydb.transaction(function(t) {
 
-         t.executeSql('select * from travelSettleExpDetails inner join cityTownMst on cityTownMst.cityTownId = travelSettleExpDetails.cityTownId inner join currencyMst on travelSettleExpDetails.currencyId = currencyMst.currencyId inner join travelExpenseNameMst on travelExpenseNameMst.id = travelSettleExpDetails.expNameId;', [],
+         t.executeSql('select * from travelSettleExpDetails inner join cityTownMst on cityTownMst.cityTownId = travelSettleExpDetails.cityTownId inner join currencyMst on travelSettleExpDetails.currencyId = currencyMst.currencyId inner join travelExpenseNameMst on travelExpenseNameMst.id = travelSettleExpDetails.expNameId inner join travelRequestDetails on travelRequestDetails.travelRequestId = travelSettleExpDetails.travelRequestId;', [],
              function(transaction, result) {
 
                  if (result != null && result.rows != null) {
@@ -2716,7 +2772,24 @@ function arrayRemove(arr, value) {
 
                          var row = result.rows.item(i);
 
-                         var newDateFormat = reverseConvertDate(row.expDate.substring(0, 2)) + "-" + row.expDate.substring(3, 5) + " " + row.expDate.substring(6, 10);
+                        var narration = row.expNarration;
+
+                        if(narration > '8'){
+                           narration = narration.substring(0,5)+"..";
+                        }
+
+                        var attachmentLength = row.tsExpAttachment.length;
+                        //attachmentLength = attachmentLength+1;
+
+                        var newDateFormat = getDateForDetailLine(row.expDate);
+                        var length = row.travelRequestNo.length;
+                        var trNo = (row.travelRequestNo).substr(length-2);
+
+                        var cityTown = row.cityTownName;
+
+                        if(cityTown > '9'){
+                           cityTown = cityTown.substring(0,6)+"..";
+                        }
 
                          var rowss = j('<tr></tr>').attr({
                              class: ["test"].join(' ')
@@ -2726,6 +2799,9 @@ function arrayRemove(arr, value) {
                              class: ["expDate"].join(' ')
                          }).html('<p style="color: black;">' + newDateFormat + '</P>').appendTo(rowss);
                          j('<td></td>').attr({
+                             class: ["trNo"].join(' ')
+                         }).html('<p style="color: black;">' + trNo + '</P>').appendTo(rowss);
+                         j('<td></td>').attr({
                              class: ["expenseName"].join(' ')
                          }).html('<p style="color: black;">' + row.expenseName + '</P>').appendTo(rowss).appendTo(rowss);
                          j('<td></td>').attr({
@@ -2733,16 +2809,16 @@ function arrayRemove(arr, value) {
                          }).html('<p>' + row.expAmt + ' ' + row.currencyName + '</P>').appendTo(rowss);
                          j('<td></td>').attr({
                              class: ["cityTownName"].join(' ')
-                         }).html('<p style="color: black;">' + row.cityTownName + '</P>').appendTo(rowss);
+                         }).html('<p style="color: black;">' + cityTown + '</P>').appendTo(rowss);
 
-                         if (row.tsExpAttachment.length == 0) {
+                         if (attachmentLength == 0) {
                              j('<td></td>').attr({
                                  class: ["expNarration"].join(' ')
-                             }).html('<p>' + row.expNarration + '</P>').appendTo(rowss);
+                             }).html('<p>' + narration +'</P>').appendTo(rowss);
                          } else {
                              j('<td></td>').attr({
                                  class: ["expNarration"].join(' ')
-                             }).html('<p>' + row.expNarration + '</P><img src="images/attach.png" width="25px" height="25px">').appendTo(rowss);
+                             }).html('<p>' + narration +'</P><img src="images/attach.png" width="25px" height="25px">').appendTo(rowss);
                          }
                          j('<td></td>').attr({
                              class: ["expDate1", "displayNone"].join(' ')
@@ -4017,16 +4093,14 @@ function arrayRemove(arr, value) {
          jsonFindExpNameHead["ExpenseName"] = row.expName;
          jsonExpNameArr.push(jsonFindExpNameHead);
      }
+
+      setEditBEJSON();
      createExpNameDropDownForBEEdit(jsonExpNameArr);
-
-
-     setEditBEJSON();
-
-
  }
 
  function createExpNameDropDownForBEEdit(jsonExpNameArr) {
      var jsonExpArr = [];
+     console.log("jsonExpNameArr : "+JSON.stringify(jsonExpNameArr));
      if (jsonExpNameArr != null && jsonExpNameArr.length > 0) {
          for (var i = 0; i < jsonExpNameArr.length; i++) {
              var stateArr = new Array();
@@ -4080,7 +4154,12 @@ function arrayRemove(arr, value) {
 
      document.getElementById("expAmt").value = jsonFindBEEditValues.amount;
 
+
+
+setTimeout(function() {
      j("#expenseName").select2("val", jsonFindBEEditValues.expenseId);
+}, 50);
+
 
      j("#currency").select2("val", jsonFindBEEditValues.currencyId);
 
@@ -4220,11 +4299,12 @@ function arrayRemove(arr, value) {
      }
  }
 
- function getPrimaryExpenseId(expMstId) {
+ function getPrimaryExpenseId(expMstId,accountCodeId,accHeadIdVal) {
+
      if (mydb) {
          //Get all the employeeDetails from the database with a select statement, set outputEmployeeDetails as the callback function for the executeSql command
          mydb.transaction(function(t) {
-             t.executeSql("SELECT id FROM expNameMst where expNameMstId=" + expMstId, [], getExpId);
+             t.executeSql("SELECT id FROM expNameMst where expNameMstId=" + expMstId + " and accCodeId ="+ accountCodeId +" and accHeadId = " +accHeadIdVal, [], getExpId);
          });
      } else {
          alert(window.lang.translate('Database not found, your browser does not support web sql!'));
@@ -4553,7 +4633,7 @@ function arrayRemove(arr, value) {
  }
 
  function getExpenseIdForTravelFromDB(travelReqID, travelModeID, travelCategoryID, cityTownID, travelExpenseReqID, cityTownName, travelExpenseReqName) {
-console.log("cityTownID : "+cityTownID);
+
      if (mydb) {
          mydb.transaction(function(t) {
              t.executeSql("SELECT expenseNameId FROM travelExpenseNameMst where id=" + travelExpenseReqID, [],
@@ -4580,7 +4660,7 @@ console.log("cityTownID : "+cityTownID);
 
  function calcuteEntitlementForTS(expenseNameId, travelReqID, travelExpenseReqID, travelModeID, travelCategoryID, cityTownID, cityTownName, travelExpenseReqName) {
 
-     console.log("travelExpenseNameID : " + expenseNameId + "cityTownID : " + cityTownID);
+     //console.log("travelExpenseNameID : " + expenseNameId + " cityTownID : " + cityTownID);
 
      if (validateValuesForEntitlement(travelReqID, travelModeID, travelCategoryID, cityTownID, travelExpenseReqID)) {
          if (mydb) {
@@ -4894,8 +4974,10 @@ console.log("cityTownID : "+cityTownID);
                                  var creatorName =  headArray.creatorName;
                                  var query =  headArray.query;
                                  var queryId =  headArray.queryId;
-
-                                 t.executeSql("INSERT INTO BEHeader (busExpHeaderId ,busExpNumber ,accHeadId ,accHeadDesc ,voucherDate ,startDate ,endDate ,currencyId ,currencyName ,editorTotalAmt ,vocherStatus , currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments,query,queryId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [busExpHeaderId, busExpNumber, accHeadId, accHeadDesc, voucherDate, startDate, endDate, currencyId, currencyName, editorTotalAmt, vocherStatus, currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments , query ,queryId]);
+                                 var queryAns =  headArray.queryAns;
+                                 var workflowToBeFollowed = headArray.workflowToBeFollowed;
+                                 
+                                 t.executeSql("INSERT INTO BEHeader (busExpHeaderId ,busExpNumber ,accHeadId ,accHeadDesc ,voucherDate ,startDate ,endDate ,currencyId ,currencyName ,editorTotalAmt ,vocherStatus , currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments, query, queryId, queryAns, workflowToBeFollowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [busExpHeaderId, busExpNumber, accHeadId, accHeadDesc, voucherDate, startDate, endDate, currencyId, currencyName, editorTotalAmt, vocherStatus, currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments , query, queryId, queryAns, workflowToBeFollowed]);
 
                              }
                          }
@@ -4914,7 +4996,9 @@ console.log("cityTownID : "+cityTownID);
                      requestRunning = false;
                      if (statusOfVoucher == 'F' || statusOfVoucher == 'R' || statusOfVoucher == 'P' || statusOfVoucher == 'U' || statusOfVoucher == 'D' || statusOfVoucher == 'Q') {
                          displayPastVoucherPage(data.Status);
-                     } else {
+                     }  else if(statusOfVoucher == 'Q'){
+                        displayQueryPage(data.Status);
+                    } else {
                          displayApprovalPage(data.Status);
                      }
                  } else {
@@ -4978,8 +5062,6 @@ console.log("cityTownID : "+cityTownID);
  }
 
  function fetchViewForVouchersHeader() {
-     var statusForEdit = "";
-     var pendingAt = "";
      mydb.transaction(function(t) {
          t.executeSql('SELECT * FROM BEHeader;', [],
              function(transaction, result) {
@@ -4987,6 +5069,9 @@ console.log("cityTownID : "+cityTownID);
                      j('#voucherHeader').empty();
                      for (record = 0; record < result.rows.length; record++) {
                          var row = result.rows.item(record);
+
+                         var statusForEdit = "";
+                         var pendingAt = "";
 
                          if (row.vocherStatus == 'R') {
                              statusForEdit = 'Sent Back';
@@ -5016,14 +5101,17 @@ console.log("cityTownID : "+cityTownID);
                          var data =
                              "<div class='col-md-12' onclick='fetchViewForVoucherDetails(" + row.busExpHeaderId + ");'>" 
                              + "<div class='card shadow'>" 
-                             + "<div class='card-header' style='font-size: 15px;color: #076473;'>" 
+                             + "<div class='card-header' style='font-size: 15px;color: #076473;'>"
+
+                             + "<span style='display: inline;' id = 'isEntitlementExceeded_"+record+"'></span>"
+  
                              + row.busExpNumber 
                                 + "<h7 style='display: inline;'>&nbsp("+defaultCurrency+")</h7>"
                                 + "<label style = 'color:darkorange;float: right;'>" + statusForEdit + "</label></div>" 
                                  + "<div class='card-body' style='padding: 10px;'>" 
                                         + "<div class='row'>" 
                                             + "<div class='col-md-12' style='margin-bottom: 5px;'>"
-                                                + "<label>" + row.accHeadDesc + "</label>"    
+                                                + "<label>" + row.accHeadDesc + "</label>"  
                                             + "</div>" 
                                         + "</div>" 
                                         + "<div class='row'>"
@@ -5050,10 +5138,29 @@ console.log("cityTownID : "+cityTownID);
                               + "</div>" 
                             + "<br>";
 
+
+                  
+
                          j('#voucherHeader').append(data);
 
+
+            if (row.workflowToBeFollowed == 'D') {
+                if (window.localStorage.getItem("APPLICATION_VERSION") == false || window.localStorage.getItem("versionNumber") > 12.4) {
+
+                    var buttonValue =
+                        "<i style='font-size: 12px;color: red;float: left;;margin-top: 5px;' class='fa fa-circle'></i>" + "&nbsp;";
+
+                    j('#isEntitlementExceeded_' + record).append(buttonValue);
+
+                }
+
+            }
+
                      }
+
+
                  }
+
 
              });
 
@@ -5061,6 +5168,7 @@ console.log("cityTownID : "+cityTownID);
  }
 
  // ******************************** View Past Voucher  / For My Approval Header -- End *********************************************//
+
 
   function fetchCountForMyApproval(statusOfVoucher) {
 
@@ -5259,11 +5367,9 @@ console.log("cityTownID : "+cityTownID);
     return( date.getMonth() + 1 + "/" +date.getDate());
 }
 
-// Neha
 
  function setHeaderToDetail(busExpHeaderId, voucherDetailArray, detailBodyLines) {
-     var statusForEdit = "";
-     var pendingAt = "";
+
      mydb.transaction(function(t) {
 
          t.executeSql('SELECT * FROM BEHeader where busExpHeaderId = ' + busExpHeaderId, [],
@@ -5272,6 +5378,9 @@ console.log("cityTownID : "+cityTownID);
                      j('#voucherDetailsTab').empty();
                      for (record = 0; record < result.rows.length; record++) {
                          var row = result.rows.item(record);
+
+                            var statusForEdit = "";
+                            var pendingAt = "";
                         
                          if (row.vocherStatus == 'R') {
                              statusForEdit = 'Sent Back';
@@ -5304,7 +5413,8 @@ console.log("cityTownID : "+cityTownID);
                          var data =
                              "<div class='col-md-12'>" 
                              + "<div class='card shadow'>" 
-                             + "<div class='card-header' style='font-size: 15px;color: #076473;'>" 
+                             + "<div class='card-header' style='font-size: 15px;color: #076473;'>"
+                             +"<span style='display: inline;' id = 'isEntitlementExceeded_" + record + "'></span>"
                              + row.busExpNumber 
                              +"<h7 style='display: inline;'>&nbsp("+defaultCurrency+")</h7>"
                              +"<label style = 'color:darkorange;float: right;'>" + statusForEdit + "</label></div>"
@@ -5325,6 +5435,7 @@ console.log("cityTownID : "+cityTownID);
                                  + "</div>" 
                              + "</div>" 
                          + "<div class='card-footer' id='buttonsAttached' style='padding-bottom:20px;'>" 
+                        
                          + "<span style='width: 25%;display: contents;'>" 
                          + "<i class='fa fa-calendar' aria-hidden='true' style='margin-left: 5px;'></i>" 
                          + "<label><h5 style='padding-bottom: 10%;style='font-weight: 500;''>&nbsp;" + row.startDate + ' - ' + row.endDate + "</h5></label>"
@@ -5343,11 +5454,29 @@ console.log("cityTownID : "+cityTownID);
                          + "<tbody id='detailBodyId'>" + detailBodyLines + "</tbody>" 
                          + "</table>" 
                          + "</div>" 
-                         + "</div>" 
-                         + "</div>" 
-                         + "</div>";
+                         + "</div>"
 
+                         + "<div id = 'policies' style='display: none;' onclick='fetchException("+busExpHeaderId+","+"1)'>"
+                         + "<td><i class='fa fa-plus-square-o' style='font-size:18px;color:#337ab7;padding: 6px;'> Policies</i></td>"
+                         + "</div>"
+                         + "<div id = 'exceptionMsg' style='padding-left: 5px; padding-bottom: 5px; padding-right:5px;'>"
+                         +"</div>"
+                         + "</div>"   
+                         + "</div>";
                          j('#voucherDetailsTab').append(data);
+
+                         if (window.localStorage.getItem("APPLICATION_VERSION") == false || window.localStorage.getItem("versionNumber") > 12.4) {
+                            if (row.workflowToBeFollowed == 'D') {
+                                var buttonValue =
+                                    "<i style='font-size: 12px;color: red;float: left;margin-top: 5px;' class='fa fa-circle'></i>" + "&nbsp;";
+
+                                j('#isEntitlementExceeded_' + record).append(buttonValue);
+
+                                document.getElementById('policies').style.display = "block";
+
+                            }
+
+                        }
 
                          if (statusForEdit == 'Sent Back') {
 
@@ -5357,8 +5486,9 @@ console.log("cityTownID : "+cityTownID);
                                             +"<br>"
                                             +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.rejectionComments+"</div>"
                                             +"<div><br>"
-                                            +"<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>" + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdSB()'>Edit</button>&nbsp;" 
-                                            +"<button type='submit' id = 'sendForApproveBtn' class='btn btn-primary' onclick='approveVoucher(" + busExpHeaderId + ")'>Send For Approval</button>&nbsp;" + "</div>";
+                                            +"<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>" 
+                                            + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdSB()'>Edit</button>&nbsp;" 
+                                           +"<button type='submit' id = 'sendForApproveBtn' class='btn btn-primary' onclick='approveVoucher(" + busExpHeaderId + ")'>Send For Approval</button>&nbsp;" + "</div>";
 
                              j('#buttonsAttached').append(buttonValue);
                          }
@@ -5366,8 +5496,9 @@ console.log("cityTownID : "+cityTownID);
                          if (statusForEdit == 'Draft') {
 
                              buttonValue =  
-                                            "<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>" + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdSB()'>Edit</button>&nbsp;" 
-                                            +"<button type='submit' id = 'sendForApproveBtn' class='btn btn-primary' onclick='approveVoucher(" + busExpHeaderId + ")'>Send For Approval</button>&nbsp;" + "</div>";
+                                            "<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>" 
+                                            + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdSB()'>Edit</button>&nbsp;" 
+                                         +"<button type='submit' id = 'sendForApproveBtn' class='btn btn-primary' onclick='approveVoucher(" + busExpHeaderId + ")'>Send For Approval</button>&nbsp;" + "</div>";
 
                              j('#buttonsAttached').append(buttonValue);
                          }
@@ -5383,6 +5514,7 @@ console.log("cityTownID : "+cityTownID);
                         }
                          
                          if(statusForEdit =='In Queries' && enableDivBasedOnStatus == 'A'){
+                            document.getElementById("RejectedBtn").disabled =true;
                             document.getElementById("approveBtn").disabled =true;
                             }
                           
@@ -5406,14 +5538,32 @@ console.log("cityTownID : "+cityTownID);
                             
                             var ids = row.busExpHeaderId+'&'+row.queryId;
                        
-                            buttonValue =   
+                            if(row.queryAns == "" || row.queryAns=="undefined" ||row.queryAns=="Null"){
+                                buttonValue =   
                                             "<br>"
                                             +"<div style='margin-left: 2%;'><label>Query Asked To Me:</label>"
                                             +"<br>"
                                             +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.query+"</div>"
                                             +"<div><br>"
+                                            +"<div class='col-md-12' style='text-align: center;'>"
                                             +"<button type='button' id = 'QueryBtn' class='btn btn-primary' data-toggle='modal' data-id="+ids+" data-target='#myModalQuery'>Reply</button>"
+                                            +"</div>"
                                             ;
+                             }else{
+                                 buttonValue =   
+                                            "<br>"
+                                            +"<div style='margin-left: 2%;'><label>Query Asked To Me:</label>"
+                                            +"<br>"
+                                            +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.query+"</div><br>"
+                                            +"<div style='margin-right: 2%;'><label>Reply:</label>"
+                                            +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.queryAns+"</div>"
+                                            +"<div><br>"
+                                            +"<div class='col-md-12' style='text-align: center;'>"
+                                            +"<button type='button' id = 'QueryBtn' class='btn btn-primary' data-toggle='modal' data-id="+ids+" data-target='#myModalQuery'>Edit</button>"
+                                            +"</div>"
+                                            ;
+                             }
+                       
 
                              j('#buttonsAttached').append(buttonValue);
                             
@@ -5426,6 +5576,7 @@ console.log("cityTownID : "+cityTownID);
      });
 
  }
+
 
 // ************************************** Approve Reject Voucher Start ************************************************ //
 
@@ -5552,76 +5703,6 @@ function rejectVoucher(){
         alert("Please enter send back comment.");
     }
 }
-
-/*function rejectVoucher(){
-     var headerBackBtn = defaultPagePath + 'backbtnPage.html';
-    var pageRefSuccess = defaultPagePath + 'success.html';
-    var busExpHeaderId = j("#RejectedBtn").data('id');
-    var comment = j.trim(j("#sendBackComment").val());
-
-    if(comment != ""){
-
-        var jsonToBeSendForApproval = new Object();
-        jsonToBeSendForApproval["processId"] = res[1];
-        jsonToBeSendForApproval["headerList"] = res[0];
-        jsonToBeSendForApproval["employeeId"] = window.localStorage.getItem("EmployeeId");
-        jsonToBeSendForApproval["buttonStatus"] = "R";
-        jsonToBeSendForApproval["rejectionComment"] = comment;
-         
-        j('#loading_Cat').show();
-
-        j.ajax({
-            url: window.localStorage.getItem("urlPath") + "MobileApproveRejectService",
-            type: 'POST',
-            dataType: 'json',
-            crossDomain: true,
-            data: JSON.stringify(jsonToBeSendForApproval),
-            success: function(data) {
-              
-                if (data.Status == "Success") {
-                    j('#loading_Cat').hide();
-                    var claimExpArray = data.expenseDetails;
-
-                    mydb.transaction(function(t) {
-                        if (claimExpArray != null && claimExpArray.length > 0) {
-                            for (var i = 0; i < claimExpArray.length; i++) {
-                                var headArray = new Array();
-                                headArray = claimExpArray[i];
-                                //console.log("headArray : "+headArray);
-
-                                var approvalMsg = headArray.message;
-                                successMessage = approvalMsg;
-
-                            }
-                        }
-
-                        if(successMessage != null && successMessage != ""){
-                            j('#loading_Cat').hide();
-                            j('#mainHeader').load(headerBackBtn);
-                            j('#mainContainer').load(pageRefSuccess);
-                        }
-                        requestRunning = false;             
-                    });
-
-                    requestRunning = false;
-                    j('#mainHeader').load(headerBackBtn);
-                    j('#mainContainer').load(pageRefSuccess);
-
-                } else {
-                     j('#loading_Cat').hide();
-                    successMessage = "Error: Oops something is wrong, Please Contact System Administer";
-                    requestRunning = false;
-                }
-            },
-            error: function(data) {
-                 j('#loading_Cat').hide();
-                requestRunning = false;
-            }
-        });
-    }else{
-        alert("Please enter send back comment.");
-    }
-}*/
 
  function approveVoucher(busExpHeaderId){
 
@@ -5841,7 +5922,10 @@ function expPrimaryIdSB() {
             alert(window.lang.translate('Select single expense line for edit.'));
         } else {
             j("#detailBodyId tr.selected").each(function(index, row) {
-                getPrimaryExpenseIdSB(j(this).find('td.expNameId').text());
+                var expNameID = j(this).find('td.expNameId').text();
+                var accHeadIdVal = j(this).find('td.accHeadId').text();
+
+                getPrimaryExpenseIdSB(expNameID,accHeadIdVal);
             });
         }
     } else {
@@ -5849,11 +5933,12 @@ function expPrimaryIdSB() {
     }
 }
 
-function getPrimaryExpenseIdSB(expMstId) {
+function getPrimaryExpenseIdSB(expMstId,accHeadIdVal) {
+
      if (mydb) {
          //Get all the employeeDetails from the database with a select statement, set outputEmployeeDetails as the callback function for the executeSql command
          mydb.transaction(function(t) {
-             t.executeSql("SELECT id FROM expNameMst where expNameMstId=" + expMstId, [], getExpIdSB);
+              t.executeSql("SELECT id FROM expNameMst where expNameMstId=" + expMstId +" and accHeadId = " +accHeadIdVal, [], getExpIdSB);
          });
      } else {
          alert(window.lang.translate('Database not found, your browser does not support web sql!'));
@@ -6291,7 +6376,7 @@ function queryAnwser(){
 }
 
 
-// ---------------------------------------------------  Neha -- Start -----------------------------------------------------  //
+// ---------------------------------------------------  Travel Past -- Start -----------------------------------------------------  //
 
  function TRTSAllViews() {
 
@@ -6386,15 +6471,22 @@ function queryAnwser(){
                                  var travelType =  headArray.travelType;           
                                  var query =  headArray.query;
                                  var queryId =  headArray.queryId;
+                                 var queryAns =  headArray.queryAns;
+                                 var workflowToBeFollowed = headArray.workflowToBeFollowed;
 
-                                 t.executeSql("INSERT INTO TravelHeader (headerId ,voucherNumber ,accHeadId ,accHeadDesc ,voucherDate ,startDate ,endDate ,currencyId ,currencyName ,editorTotalAmt ,vocherStatus , currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments, iternaryType, toLocation, fromLocation, travelType, query, queryId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [headerId, voucherNumber, accHeadId, accHeadDesc, voucherDate, startDate, endDate, currencyId, currencyName, editorTotalAmt, vocherStatus, currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments , iternaryType, toLocation, fromLocation, travelType, query ,queryId]);
+                                 console.log(workflowToBeFollowed);
+
+
+                                 t.executeSql("INSERT INTO TravelHeader (headerId ,voucherNumber ,accHeadId ,accHeadDesc ,voucherDate ,startDate ,endDate ,currencyId ,currencyName ,editorTotalAmt ,vocherStatus , currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments, iternaryType, toLocation, fromLocation, travelType, query, queryId, queryAns, workflowToBeFollowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [headerId, voucherNumber, accHeadId, accHeadDesc, voucherDate, startDate, endDate, currencyId, currencyName, editorTotalAmt, vocherStatus, currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments , iternaryType, toLocation, fromLocation, travelType, query ,queryId, queryAns, workflowToBeFollowed]);
 
                              }
                          }
                          requestRunning = false;
                          if (statusOfVoucher == 'F' || statusOfVoucher == 'R' || statusOfVoucher == 'P' || statusOfVoucher == 'U' || statusOfVoucher == 'D') {
                              displayTravelPastVoucherPage(data.Status);
-                         } else {
+                         }  else if(statusOfVoucher == 'Q'){
+                            displayQueryVoucherPage(data.Status);
+                        } else {
                              displayTravelApprovalPage(data.Status);
                          }
 
@@ -6404,9 +6496,9 @@ function queryAnwser(){
                      requestRunning = false;
                      if (statusOfVoucher == 'F' || statusOfVoucher == 'R' || statusOfVoucher == 'P' || statusOfVoucher == 'U' || statusOfVoucher == 'D') {
                          displayTravelPastVoucherPage(data.Status);
-                     }  else if(statusOfVoucher == 'Q'){
-                           // displayQueryVoucherPage(data.Status);
-                     } else {
+                     } else if(statusOfVoucher == 'Q'){
+                            displayQueryVoucherPage(data.Status);
+                    }else {
                          displayTravelApprovalPage(data.Status);
                      }
                  } else {
@@ -6470,8 +6562,7 @@ function queryAnwser(){
  }
 
  function fetchViewForTravelVouchersHeader() {
-     var statusForEdit = "";
-     var pendingAt = "";
+     
      mydb.transaction(function(t) {
          t.executeSql('SELECT * FROM TravelHeader;', [],
              function(transaction, result) {
@@ -6479,6 +6570,9 @@ function queryAnwser(){
                      j('#voucherHeader').empty();
                      for (record = 0; record < result.rows.length; record++) {
                          var row = result.rows.item(record);
+
+                         var pendingAt = "";
+                         var statusForEdit = "";
 
                          if (row.vocherStatus == 'R') {
                              statusForEdit = 'Sent Back';
@@ -6515,8 +6609,9 @@ function queryAnwser(){
                          var data =
                              "<div class='col-md-12' onclick='fetchViewForTravelDetails(" + row.headerId+ ");'>" 
                                 + "<div class='card shadow'>" 
-                                    + "<div class='card-header' style='font-size: 15px;color: #076473;'>" 
-                                         + row.voucherNumber 
+                                    + "<div class='card-header' style='font-size: 15px;color: #076473;'>"
+                                    + "<span style='display: inline;' id = 'isEntitlementExceeded_"+record+"'></span>"
+                                          + row.voucherNumber 
                                             +"<h7 style='display: inline;'>&nbsp("+defaultCurrency+")</h7>"
                              + "<label style = 'color:darkorange;float: right;'>" + statusForEdit + "</label></div>" 
                              + "<div class='card-body' style='padding: 10px;''>" 
@@ -6554,6 +6649,18 @@ function queryAnwser(){
                  + "<br>";
 
                          j('#voucherHeader').append(data);
+
+        if (row.workflowToBeFollowed == 'D') {
+            if (window.localStorage.getItem("APPLICATION_VERSION") == false || window.localStorage.getItem("versionNumber") > 12.4) {
+
+                var buttonValue =
+                    "<i style='font-size: 12px;color: red;float: left;;margin-top: 5px;' class='fa fa-circle'></i>" + "&nbsp;";
+
+                j('#isEntitlementExceeded_' + record).append(buttonValue);
+
+            }
+
+        }
 
                      }
                  }
@@ -6657,8 +6764,7 @@ function queryAnwser(){
  }
 
 function setTravelHeaderToDetail(headerId, voucherDetailArray, detailBodyLines) {
-     var statusForEdit = "";
-     var pendingAt = "";
+
      mydb.transaction(function(t) {
 
          t.executeSql('SELECT * FROM TravelHeader where headerId = ' + headerId, [],
@@ -6668,6 +6774,9 @@ function setTravelHeaderToDetail(headerId, voucherDetailArray, detailBodyLines) 
                      for (record = 0; record < result.rows.length; record++) {
                          var row = result.rows.item(record);
                         
+                             var statusForEdit = "";
+                             var pendingAt = "";
+
                          if (row.vocherStatus == 'R') {
                              statusForEdit = 'Sent Back';
                          } else if (row.vocherStatus == 'P') {
@@ -6701,6 +6810,7 @@ function setTravelHeaderToDetail(headerId, voucherDetailArray, detailBodyLines) 
                             "<div class='col-md-12'>" 
                                 + "<div class='card shadow'>" 
                                     + "<div class='card-header' style='font-size: 15px;color: #076473;'>" 
+                                        + "<span style='display: inline;' id = 'isEntitlementExceeded_"+record+"'></span>"
                                          + row.voucherNumber 
                                             +"<h7 style='display: inline;'>&nbsp("+defaultCurrency+")</h7>"
                              + "<label style='color:darkorange;float: right;'>" + statusForEdit + "</label></div>" 
@@ -6754,14 +6864,36 @@ function setTravelHeaderToDetail(headerId, voucherDetailArray, detailBodyLines) 
                          + "<tbody id='detailBodyId'>" + detailBodyLines + "</tbody>" 
                          + "</table>" 
                          + "</div>"
+                         + "</div>"
 
-                                + "</div>"
-                             + "</div>"
+
+                         + "<div id = 'policies' style='display: none;' onclick='fetchException("+headerId+","+"3)'>"
+                         + "<td><i class='fa fa-plus-square-o' style='font-size:18px;color:#337ab7;padding: 6px;'> Policies</i></td>"
+                         + "</div>"
+
+                         + "<div id = 'exceptionMsg' style='padding-left: 5px; padding-right:5px;'>"
+                         + "</div>"
+                        
+                         +"</div>"
                          + "</div>" 
                      + "</div>" 
                  + "<br>";
 
                          j('#voucherDetailsTab').append(data);
+
+
+                            if (window.localStorage.getItem("APPLICATION_VERSION") == false || window.localStorage.getItem("versionNumber") > 12.4) {
+                                if (row.workflowToBeFollowed == 'D') {
+                                    var buttonValue =
+                                        "<i style='font-size: 12px;color: red;float: left;margin-top: 5px;' class='fa fa-circle'></i>" + "&nbsp;";
+
+                                    j('#isEntitlementExceeded_' + record).append(buttonValue);
+
+                                    document.getElementById('policies').style.display = "block";
+
+                                }
+
+                            }
 
                          if (statusForEdit == 'Sent Back') {
 
@@ -6771,8 +6903,9 @@ function setTravelHeaderToDetail(headerId, voucherDetailArray, detailBodyLines) 
                                             +"<br>"
                                             +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.rejectionComments+"</div>"
                                             +"<div><br>"
-                                            +"<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>" + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdTR()'>Edit</button>&nbsp;" 
-                                            +"<button type='submit' id = 'sendForApproveBtn' class='btn btn-primary' onclick='approveTRVoucher(" + row.headerId + ")'>Send For Approval</button>&nbsp;" + "</div>";
+                                          +"<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>"
+                                            /*   + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdTR()'>Edit</button>&nbsp;" */  
+                                          +"<button type='submit' id = 'sendForApproveBtn' class='btn btn-primary' onclick='approveTRVoucher(" + row.headerId + ")'>Send For Approval</button>&nbsp;" + "</div>";
 
                              j('#buttonsAttached').append(buttonValue);
                          }
@@ -6780,7 +6913,8 @@ function setTravelHeaderToDetail(headerId, voucherDetailArray, detailBodyLines) 
                          if (statusForEdit == 'Draft') {
 
                              buttonValue =  
-                                            "<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>" + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdTR()'>Edit</button>&nbsp;" 
+                                           "<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>" 
+                                            /* + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdTR()'>Edit</button>&nbsp;"  */
                                             +"<button type='submit' id = 'sendForApproveBtn' class='btn btn-primary' onclick='approveTRVoucher(" + row.headerId + ")'>Send For Approval</button>&nbsp;" + "</div>";
 
                              j('#buttonsAttached').append(buttonValue);
@@ -6810,22 +6944,44 @@ function setTravelHeaderToDetail(headerId, voucherDetailArray, detailBodyLines) 
                         }
 
                            if(statusForEdit =='In Queries' && enableDivBasedOnStatus == 'A'){
+                             document.getElementById("RejectedBtn").disabled =true;
                             document.getElementById("approveBtn").disabled =true;
                             }
 
                         var empId = window.localStorage.getItem("EmployeeId");
-                        if(statusForEdit == 'In Queries'  && (empId==row.createdById)){
+
+                        var len = appPageHistory.length;
+                        var pg = appPageHistory[len - 3];
+
+                        if(statusForEdit == 'In Queries'  && (empId==row.createdById) && pg !='app/pages/TRTSAllViews.html'){
                             
                             var ids = row.headerId+'&'+row.queryId;
                        
-                            buttonValue =   
+                        if(row.queryAns == "" || row.queryAns=="undefined" ||row.queryAns=="Null"){
+                                buttonValue =   
                                             "<br>"
                                             +"<div style='margin-left: 2%;'><label>Query Asked To Me:</label>"
                                             +"<br>"
                                             +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.query+"</div>"
                                             +"<div><br>"
-                                            +"<button type='button' id = 'QueryTrBtn' class='btn btn-primary' data-toggle='modal' data-id="+ids+" data-target='#myModalQuery'>Reply</button>"
+                                            +"<div class='col-md-12' style='text-align: center;'>"
+                                            +"<button type='button' id = 'QueryTrBtn' class='btn btn-primary' data-toggle='modal' data-id="+ids+" data-target='#myModalTrQuery'>Reply</button>"
+                                            +"</div>"
                                             ;
+                             }else{
+                                 buttonValue = 
+                                            "</br>" 
+                                            +"<div style='margin-left: 2%;'><label>Query Asked To Me:</label>"
+                                            +"<br>"
+                                            +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.query+"</div><br>"
+                                            +"<div style='margin-right: 2%;'><label>Reply:</label>"
+                                            +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.queryAns+"</div>"
+                                            +"<div><br>"
+                                            +"<div class='col-md-12' style='text-align: center;'>"
+                                            +"<button type='button' id = 'QueryTrBtn' class='btn btn-primary' data-toggle='modal' data-id="+ids+" data-target='#myModalTrQuery'>Edit</button>"
+                                            +"</div>"
+                                            ;
+                             }
 
                              j('#buttonsAttached').append(buttonValue);
                             
@@ -6841,7 +6997,7 @@ function setTravelHeaderToDetail(headerId, voucherDetailArray, detailBodyLines) 
 
   // *************************************** Travel Request Header / Details -- End *****************************************************//
 
-// ---------------------------------------------------  Neha -- End -----------------------------------------------------  //
+// ---------------------------------------------------  Profile -- End -----------------------------------------------------  //
 function updateProfilePicture(imageData){
      try {
          var empId = window.localStorage.getItem("EmployeeId");
@@ -6955,7 +7111,7 @@ function submitTSWithEA(){
                 travelSettleExpDetailsArr.push(travelSettleDetailId);
             });
                 if (travelSettleExpDetailsArr.length > 0) {
-                saveTravelSettle(jsonTravelSettlementDetailsArr, travelSettleExpDetailsArr);
+                saveTravelSettle(jsonTravelSettlementDetailsArr, travelSettleExpDetailsArr,"N");
                 }
                 } else {
                 requestRunning = false;
@@ -6998,8 +7154,8 @@ function submitTSWithEA(){
  /********************    Kunal Coding For Approve Voucher start   *************************/
 
 function fetchViewForTravelApproveVouchersHeader() {
-     var statusForEdit = "";
-     var pendingAt = "";
+     
+     
      mydb.transaction(function(t) {
          t.executeSql('SELECT * FROM TravelHeader;', [],
              function(transaction, result) {
@@ -7007,6 +7163,9 @@ function fetchViewForTravelApproveVouchersHeader() {
                      j('#voucherHeader').empty();
                      for (record = 0; record < result.rows.length; record++) {
                          var row = result.rows.item(record);
+
+                         var pendingAt = "";
+                         var statusForEdit = "";
 
                          if (row.vocherStatus == 'R') {
                              statusForEdit = 'Sent Back';
@@ -7042,7 +7201,8 @@ function fetchViewForTravelApproveVouchersHeader() {
                          var data =
                              "<div class='col-md-12' onclick='fetchViewForTravelDetails(" + row.headerId + ");'>" 
                                 + "<div class='card shadow'>" 
-                                    + "<div class='card-header' style='font-size: 15px;color: #076473;'>" 
+                                    + "<div class='card-header' style='font-size: 15px;color: #076473;'>"
+                                    + "<span style='display: inline;' id = 'isEntitlementExceeded_"+record+"'></span>"
                                          + row.voucherNumber 
                                             +"<h7 style='display: inline;'>&nbsp("+defaultCurrency+")</h7>"
                              + "<label style = 'color:darkorange;float: right;'>" + statusForEdit + "</label></div>" 
@@ -7081,6 +7241,18 @@ function fetchViewForTravelApproveVouchersHeader() {
                  + "<br>";
 
                          j('#trVoucherHeader').append(data);
+
+                         if (row.workflowToBeFollowed == 'D') {
+                            if (window.localStorage.getItem("APPLICATION_VERSION") == false || window.localStorage.getItem("versionNumber") > 12.4) {
+
+                                var buttonValue =
+                                    "<i style='font-size: 12px;color: red;float: left;;margin-top: 5px;' class='fa fa-circle'></i>" + "&nbsp;";
+
+                                j('#isEntitlementExceeded_' + record).append(buttonValue);
+
+                            }
+
+                        }
 
                      }
                  }
@@ -7210,8 +7382,7 @@ function fetchViewForTravelApproveVouchersHeader() {
 
 
  function fetchViewForQueryVouchersHeader() {
-     var statusForEdit = "";
-     var pendingAt = "";
+
      mydb.transaction(function(t) {
          t.executeSql('SELECT * FROM BEHeader;', [],
              function(transaction, result) {
@@ -7219,6 +7390,10 @@ function fetchViewForTravelApproveVouchersHeader() {
                      j('#beQueryData').empty();
                      for (record = 0; record < result.rows.length; record++) {
                          var row = result.rows.item(record);
+
+                         var statusForEdit = "";
+                         var pendingAt = "";
+
                          if (row.vocherStatus == 'R') {
                              statusForEdit = 'Sent Back';
                          } else if (row.vocherStatus == 'P') {
@@ -7242,12 +7417,14 @@ function fetchViewForTravelApproveVouchersHeader() {
                             pendingAt = row.currentOwnerName;
                         }
 
+
                          var defaultCurrency  = window.localStorage.getItem("DefaultCurrencyName");
 
                          var data =
                              "<div class='col-md-12' onclick='fetchViewForVoucherDetails(" + row.busExpHeaderId + ");'>" 
                              + "<div class='card shadow'>" 
-                             + "<div class='card-header' style='font-size: 15px;color: #076473;'>" 
+                             + "<div class='card-header' style='font-size: 15px;color: #076473;'>"
+                             + "<span style='display: inline;' id = 'isEntitlementExceeded_"+record+"'></span>"
                              + row.busExpNumber 
                                 + "<h7 style='display: inline;'>&nbsp("+defaultCurrency+")</h7>"
                                 + "<label style = 'color:darkorange;float: right;'>" + statusForEdit + "</label></div>" 
@@ -7283,6 +7460,19 @@ function fetchViewForTravelApproveVouchersHeader() {
 
                          j('#beQueryData').append(data);
 
+
+        if (row.workflowToBeFollowed == 'D') {
+            if (window.localStorage.getItem("APPLICATION_VERSION") == false || window.localStorage.getItem("versionNumber") > 12.4) {
+
+                var buttonValue =
+                    "<i style='font-size: 12px;color: red;float: left;;margin-top: 5px;' class='fa fa-circle'></i>" + "&nbsp;";
+
+                j('#isEntitlementExceeded_' + record).append(buttonValue);
+
+            }
+
+        }
+
                      }
                  }
 
@@ -7312,16 +7502,16 @@ function queryTrAnwser(){
         jsonToTrSendForQuery["employeeId"] = window.localStorage.getItem("EmployeeId");
         jsonToTrSendForQuery["queryAnswer"] = comment;
 
-         if (fileTempGalleryBEQ == undefined || fileTempGalleryBEQ == "") {
+         if (fileTempGalleryTRQ == undefined || fileTempGalleryTRQ == "") {
 
          } else {
-             file = fileTempGalleryBEQ;
+             file = fileTempGalleryTRQ;
          }
 
-         if (fileTempCameraBEQ == undefined || fileTempCameraBEQ == "") {
+         if (fileTempCameraTRQ == undefined || fileTempCameraTRQ == "") {
 
          } else {
-             file = fileTempCameraBEQ;
+             file = fileTempCameraTRQ;
          }
 
          if(file != ""){
@@ -7387,16 +7577,16 @@ function queryTsAnwser(){
         jsonToTsSendForQuery["employeeId"] = window.localStorage.getItem("EmployeeId");
         jsonToTsSendForQuery["queryAnswer"] = comment;
 
-         if (fileTempGalleryBEQ == undefined || fileTempGalleryBEQ == "") {
+         if (fileTempCameraTSQ == undefined || fileTempCameraTSQ == "") {
 
          } else {
-             file = fileTempGalleryBEQ;
+             file = fileTempCameraTSQ;
          }
 
-         if (fileTempCameraBEQ == undefined || fileTempCameraBEQ == "") {
+         if (fileTempGalleryTSQ == undefined || fileTempGalleryTSQ == "") {
 
          } else {
-             file = fileTempCameraBEQ;
+             file = fileTempGalleryTSQ;
          }
 
          if(file != ""){
@@ -7444,7 +7634,7 @@ function queryTsAnwser(){
 
   function displayQueryVoucherPage(statusOfVoucher) {
      if (statusOfVoucher == "SUCCESS_NO_DATA") {
-
+        j('#trQueryData').empty();
               var data = "<div style='text-align: center;'>"
                          +"<p  style='text-align: center;'><img src = 'images/noVoucher1.png'></p>"
                          +"<h4><b style='color: darkgrey;'>No expense available.</b></h4>"
@@ -7458,8 +7648,6 @@ function queryTsAnwser(){
  }
 
 function fetchViewForQueryTravelVouchersHeader() {
-     var statusForEdit = "";
-     var pendingAt = "";
      mydb.transaction(function(t) {
          t.executeSql('SELECT * FROM TravelHeader;', [],
              function(transaction, result) {
@@ -7467,6 +7655,10 @@ function fetchViewForQueryTravelVouchersHeader() {
                      j('#trQueryData').empty();
                      for (record = 0; record < result.rows.length; record++) {
                          var row = result.rows.item(record);
+
+                        var statusForEdit = "";
+                        var pendingAt = "";
+
                          if (row.vocherStatus == 'R') {
                              statusForEdit = 'Sent Back';
                          } else if (row.vocherStatus == 'P') {
@@ -7501,7 +7693,8 @@ function fetchViewForQueryTravelVouchersHeader() {
                          var data =
                              "<div class='col-md-12' onclick='fetchViewForTravelDetails(" + row.headerId + ");'>" 
                                 + "<div class='card shadow'>" 
-                                    + "<div class='card-header' style='font-size: 15px;color: #076473;'>" 
+                                    + "<div class='card-header' style='font-size: 15px;color: #076473;'>"
+                                    + "<span style='display: inline;' id = 'trEntitlementExceeded_"+record+"'></span>"
                                          + row.voucherNumber 
                                             +"<h7 style='display: inline;'>&nbsp("+defaultCurrency+")</h7>"
                              + "<label style = 'color:darkorange;float: right;'>" + statusForEdit + "</label></div>" 
@@ -7541,6 +7734,18 @@ function fetchViewForQueryTravelVouchersHeader() {
                     
                          j('#trQueryData').append(data);
 
+                if (row.workflowToBeFollowed == 'D') {
+                    if (window.localStorage.getItem("APPLICATION_VERSION") == false || window.localStorage.getItem("versionNumber") > 12.4) {
+
+                        var buttonValue =
+                            "<i style='font-size: 12px;color: red;float: left;;margin-top: 5px;' class='fa fa-circle'></i>" + "&nbsp;";
+
+                        j('#trEntitlementExceeded_'+record).append(buttonValue);
+
+                    }
+
+                }
+
                      }
                  }
 
@@ -7549,3 +7754,164 @@ function fetchViewForQueryTravelVouchersHeader() {
      });
  }
 
+function fetchException(headerId,processId){
+  var headerBackBtn = defaultPagePath + 'backbtnPage.html';
+    var pageRefSuccess = defaultPagePath + 'success.html';
+
+    var jsonToBeSend = new Object();
+
+    jsonToBeSend["processId"] = processId;
+    jsonToBeSend["voucherId"] = headerId;
+    jsonToBeSend["employeeId"] = window.localStorage.getItem("EmployeeId");
+
+
+ var expContent = document.getElementById("exceptionMsg").textContent;
+  $( "#exceptionMsg" ).toggle();
+
+ if(expContent == ""){
+    j.ajax({
+        url: window.localStorage.getItem("urlPath") + "FetchExceptionMessages",
+         type: 'POST',
+         dataType: 'json',
+         crossDomain: true,
+         data: JSON.stringify(jsonToBeSend),
+         success: function(data) {
+
+             if (data.Status == "Success") {
+
+                    var entitlementExceeded = data.exceptionMessage;
+
+
+                    $( "#exceptionMsg" ).toggle();
+
+                    var buttonValue = "<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 100%;'>"+entitlementExceeded+"</div>"
+
+                    j('#exceptionMsg').append(buttonValue);
+                   
+                requestRunning = false;
+
+             } else {
+                 j('#loading_Cat').hide();
+                 successMessage = "Error: Oops something is wrong, Please Contact System Administer";
+                 requestRunning = false;
+             }
+         },
+         error: function(data) {
+            j('#loading_Cat').hide();
+            successMessage = "Error: Oops something is wrong, Please Contact System Administer";
+            requestRunning = false;
+             }
+         });
+
+    }
+}
+
+//--------------
+
+
+ function fetchImage() {
+     var rowsWallet;
+     mytable = j('<table></table>').attr({
+         id: "walletSource",
+         class: ["table", "table-striped", "table-bordered-wallet"].join(' ')
+     });
+
+     mydb.transaction(function(t) {
+
+         t.executeSql('SELECT * FROM profileMst;', [],
+             function(transaction, result) {
+
+                 if (result != null && result.rows != null) {
+
+                     for (var i = 0; i < result.rows.length; i++) {
+
+                         var row = result.rows.item(i);
+
+                         if (i % 2 == 0) {
+                             rowsWallet = j('<tr></tr>').attr({
+                                 class: ["test"].join(' ')
+                             }).appendTo(mytable);
+                         }
+
+                        var walletImage = row.profileAttachment;
+                        if(!row.profileAttachment.includes("data:image/jpeg;base64")){
+                           var walletImage = "data:image/jpeg;base64," + row.profileAttachment;
+                        }
+
+                         j('<td></td>').attr({
+                             class: ["walletattach"].join(' ')
+                         }).html('<text style="display: none">' + row.profileAttachment + '</text>' + '<p id="para" style="display: none">' + row.profileId + '</p>' + '<img src="' + walletImage + '">').appendTo(rowsWallet);
+
+                     }
+                     j("#walletSource td").click(function() {
+                         headerOprationBtn = defaultPagePath + 'headerPageForWalletImage.html';
+                         if (j(this).hasClass("selected")) {
+                             j(this).removeClass('selected');
+                             j('#mainHeader').load(headerOprationBtn);
+                         } else {
+                             j('#mainHeader').load(headerOprationBtn);
+                             j(this).addClass('selected');
+                         }
+                     });
+                 }
+             });
+     });
+     mytable.appendTo("#walletBox");
+ }
+
+ function addingReceiptToVoucher() {
+    var headerBackBtn = defaultPagePath + 'backbtnPage.html';
+    j('#attachImage').on('click', function(e) {
+        var jsonWalletArr = [];
+        var jsonWalletIDArr = [];
+        if (j("#walletSource td.selected").hasClass("selected")) {
+            j("#walletSource td.selected").each(function(index, row) {
+                var jsonFindWalletData = new Object();
+                var jsonFindWalletId = new Object();
+                var walletData = j(this).text();
+                jsonFindWalletId = j(this).find('#para').text();
+                setWalletAttachmentId = jsonFindWalletId;
+
+                    console.log("setWalletAttachmentId : "+setWalletAttachmentId);
+
+                    var headerBackBtn = defaultPagePath + 'backbtnPage.html';
+                    var pageRef = defaultPagePath + 'businessExpenseMainPage.html';
+                    j(document).ready(function() {
+                        j('#mainHeader').load(headerBackBtn);
+                        j('#mainContainer').load(pageRef);
+                        setImagedata();
+                    });
+                    appPageHistory.push(pageRef);
+
+            });
+        } else {
+            alert(window.lang.translate('Tap and select My Receipts Wallet to synch with server.'));
+        }
+    });
+}
+
+function setImagedata(){
+ 
+
+     mydb.transaction(function(t) {
+         t.executeSql('SELECT * FROM profileMst where profileId = ' + setWalletAttachmentId, [],
+             function(transaction, result) {
+                 if (result != null && result.rows != null) {
+                     for (record = 0; record < result.rows.length; record++) {
+                         var row = result.rows.item(record);
+                        var walletImage = row.profileAttachment;
+
+                         smallImageBE.style.display = 'block';
+                        fileTempCameraBE = "data:image/jpeg;base64," + walletImage;
+                        smallImageBE.src = "data:image/jpeg;base64," + walletImage;
+                        fileTempGalleryBE = "";
+
+      
+
+                     }
+                 }
+
+             });
+
+     });
+}

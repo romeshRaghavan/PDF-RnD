@@ -5,8 +5,8 @@ var headerMsg = "Expenzing";
 //var WebServicePath ='http://1.255.255.99:8681/NexstepWebService/mobileLinkResolver.service';
 //var WebServicePath = 'http://live.nexstepapps.com:8284/NexstepWebService/mobileLinkResolver.service';
 //var WebServicePath ='http://1.255.255.95:8080/NexstepWebService/mobileLinkResolver.service';
-var WebServicePath = 'http://1.255.255.178:8083/NexstepWebService/mobileLinkResolver.service';
-//var WebServicePath = 'https://appservices.expenzing.com/NexstepWebService/mobileLinkResolver.service';
+//var WebServicePath = 'http://1.255.255.178:8083/NexstepWebService/mobileLinkResolver.service';
+var WebServicePath = 'https://appservices.expenzing.com/NexstepWebService/mobileLinkResolver.service';
 var clickedFlagCar = false;
 var clickedFlagTicket = false;
 var clickedFlagHotel = false;
@@ -28,6 +28,10 @@ var fileTempGalleryBE = "";
 var fileTempGalleryTS = "";
 var fileTempCameraBEQ = "";
 var fileTempGalleryBEQ = "";
+var fileTempCameraTRQ = "";
+var fileTempGalleryTRQ = "";
+var fileTempCameraTSQ = "";
+var fileTempGalleryTSQ = "";
 var mapToCalcERAmt = new Map();
 var requestRunning = false;
 var flagForUnitEnable = false;
@@ -42,8 +46,9 @@ var toLocationWayPoint = "";
 var profileImg = "";
 var enableDivBasedOnStatus = ""; // For Past Voucher = 'V' and For my Approval = 'A'
 var updateAttachment = ""; // For BE Edit
-var MOBILE_APP_VERSION = "12.2";
+var MOBILE_APP_VERSION = "12.4";
 var MOBILE_APP_NAME = "Turbo Mobile App";
+var setWalletAttachmentId = "";
 
 j(document).ready(function() {
     document.addEventListener("deviceready", loaded, false);
@@ -871,6 +876,8 @@ function validateExpenseDetails(exp_date, exp_from_loc, exp_to_loc, exp_narratio
 
 function syncSubmitTravelDetails() {
 
+    var travelAdminComment = document.getElementById('travelAdminComment').value;
+    var travelAdminRoundComment = document.getElementById('travelAdminRoundComment').value;
     var tvl_hotel = document.getElementById('travelHotel').value;
     var tvl_plane = document.getElementById('travelPlane').value;
     var tvl_car = document.getElementById('travelCar').value;
@@ -970,6 +977,7 @@ function syncSubmitTravelDetails() {
             jsonToSaveTR["Hotel"] = tvl_hotel;
             jsonToSaveTR["TravelTicket"] = tvl_plane;
             jsonToSaveTR["CarRent"] = tvl_car;
+            jsonToSaveTR["TravelAdminComment"] = travelAdminComment;
 
             if (clickedFlagCar == true) {
                 jsonToSaveTR["IsCarRent"] = 'true';
@@ -997,6 +1005,7 @@ function syncSubmitTravelDetails() {
             }
 
         } else {
+            jsonToSaveTR["TravelAdminComment"] = travelAdminRoundComment;
             jsonToSaveTR["ItenaryType"] = 'R';
             jsonToSaveTR["TravelModeId"] = tvl_mode_rnd_id;
             jsonToSaveTR["TravelCategoryId"] = tvl_category_rnd_id;
@@ -1036,6 +1045,7 @@ function syncSubmitTravelDetails() {
         return false;
     }
 }
+
 
 function saveTravelRequestAjax(jsonToSaveTR) {
     var pageRefSuccess = defaultPagePath + 'success.html';
@@ -1220,7 +1230,7 @@ function setBooleanValueHotelRoundTextField() {
     }
 }
 
-function validatetravelDetails(travel_purpose_id, account_head_id, from_id, to_id, travel_mode_id, travel_category_id, tvl_mode_rnd_id, tvl_category_rnd_id, tvl_date, travel_title, advance_req, advance_amount) {
+function validatetravelDetails(travel_purpose_id, account_head_id, from_id, to_id, travel_mode_id, travel_category_id, tvl_mode_rnd_id, tvl_category_rnd_id, tvl_date, travel_title, advance_req, advance_amount, travelAdminComment) {
     if (travel_title == "") {
         alert(window.lang.translate('Travel Title is required'));
         return false;
@@ -2127,6 +2137,16 @@ function onPhotoDataSuccess(imageData) {
         fileTempCameraBEQ = "data:image/jpeg;base64," + imageData;
         smallImageBEQ.src = "data:image/jpeg;base64," + imageData;
         fileTempGalleryBEQ = "";
+    }  else if(voucherType == 'TRQ'){
+        smallImageTRQ.style.display = 'block';
+        fileTempCameraTRQ = "data:image/jpeg;base64," + imageData;
+        smallImageTRQ.src = "data:image/jpeg;base64," + imageData;
+        fileTempGalleryTRQ = "";
+    }else if(voucherType == 'TSQ'){
+        smallImageTSQ.style.display = 'block';
+        fileTempCameraTSQ = "data:image/jpeg;base64," + imageData;
+        smallImageTSQ.src = "data:image/jpeg;base64," + imageData;
+        fileTempGalleryTSQ = "";
     }
 }
 
@@ -2137,6 +2157,10 @@ function resetImageData() {
     fileTempGalleryTS = "";
     fileTempCameraBEQ = "";
     fileTempGalleryBEQ = "";
+    fileTempCameraTRQ = "";
+    fileTempGalleryTRQ = "";
+    fileTempCameraTSQ = "";
+    fileTempGalleryTSQ = "";
 }
 
 function hideImageBlock(){
@@ -2198,6 +2222,18 @@ function onPhotoURISuccess(imageURI) {
 
         smallImageBEQ.src = "data:image/jpeg;base64," + imageURI;
         fileTempCameraBEQ = "";
+    } else if(voucherType == 'TRQ'){
+        smallImageTRQ.style.display = 'block';
+        fileTempGalleryTRQ = "data:image/jpeg;base64," + imageURI;
+
+        smallImageTRQ.src = "data:image/jpeg;base64," + imageURI;
+        fileTempCameraTRQ = "";
+    } else if(voucherType == 'TSQ'){
+        smallImageTSQ.style.display = 'block';
+        fileTempGalleryTSQ = "data:image/jpeg;base64," + imageURI;
+
+        smallImageTSQ.src = "data:image/jpeg;base64," + imageURI;
+        fileTempCameraTSQ = "";
     }
 
 }
@@ -3649,7 +3685,10 @@ function expPrimaryId() {
             alert(window.lang.translate('Select single expense line for edit.'));
         } else {
             j("#source tr.selected").each(function(index, row) {
-                getPrimaryExpenseId(j(this).find('td.expNameId').text());
+                var accCodeIdValue = j(this).find('td.accountCodeId').text();
+                var expNameID = j(this).find('td.expNameId').text();
+                var accHeadIdVal = j(this).find('td.accHeadId').text(); 
+                getPrimaryExpenseId(expNameID,accCodeIdValue,accHeadIdVal);
             });
         }
     } else {
@@ -3921,23 +3960,27 @@ function viewSettelmentVoucherHeaders(statusOfVoucher) {
                                  var travelTitle =  headArray.travelTitle; 
                                  var query =  headArray.query;
                                  var queryId =  headArray.queryId;
+                                 var queryAns = headArray.queryAns;
+                                 var workflowToBeFollowed = headArray.workflowToBeFollowed;
 
-                                 t.executeSql("INSERT INTO TravelHeader (headerId ,voucherNumber ,accHeadId ,accHeadDesc ,voucherDate ,startDate ,endDate ,currencyId ,currencyName ,editorTotalAmt ,vocherStatus , currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments, iternaryType, toLocation, fromLocation, travelType, travelTitle, query, queryId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [headerId, voucherNumber, accHeadId, accHeadDesc, voucherDate, startDate, endDate, currencyId, currencyName, editorTotalAmt, vocherStatus, currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments , iternaryType, toLocation, fromLocation, travelType, travelTitle, query ,queryId]);
+
+                                 t.executeSql("INSERT INTO TravelHeader (headerId ,voucherNumber ,accHeadId ,accHeadDesc ,voucherDate ,startDate ,endDate ,currencyId ,currencyName ,editorTotalAmt ,vocherStatus , currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments, iternaryType, toLocation, fromLocation, travelType, travelTitle, query, queryId, queryAns, workflowToBeFollowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [headerId, voucherNumber, accHeadId, accHeadDesc, voucherDate, startDate, endDate, currencyId, currencyName, editorTotalAmt, vocherStatus, currentOwnerId, currentOwnerName, createdById, creatorName , rejectionComments , iternaryType, toLocation, fromLocation, travelType, travelTitle, query ,queryId, queryAns, workflowToBeFollowed]);
 
                              }
                          }
                          requestRunning = false;
                          if (statusOfVoucher == 'F' || statusOfVoucher == 'R' || statusOfVoucher == 'P' || statusOfVoucher == 'U' || statusOfVoucher == 'D') {
                              displaySettlementPastVoucherPage(data.Status);
-                         }else {
+                         } else if( statusOfVoucher == 'Q'){
+                             displaySettlementQueryVoucherPage(data.Status);
+                         } else {
                              displaySettlementApprovalPage(data.Status);
                          }
 
                      });
-
                  } else if (data.Status == 'SUCCESS_NO_DATA') {
                      requestRunning = false;
-                     if (statusOfVoucher == 'F' || statusOfVoucher == 'R' || statusOfVoucher == 'P' || statusOfVoucher == 'U' || statusOfVoucher == 'D' || statusOfVoucher == 'Q') {
+                     if (statusOfVoucher == 'F' || statusOfVoucher == 'R' || statusOfVoucher == 'P' || statusOfVoucher == 'U' || statusOfVoucher == 'D') {
                          displaySettlementPastVoucherPage(data.Status);
                      }  else if( statusOfVoucher == 'Q'){
                              displaySettlementQueryVoucherPage(data.Status);
@@ -4005,8 +4048,7 @@ function viewSettelmentVoucherHeaders(statusOfVoucher) {
  }
 
  function fetchViewForSettelmentVouchersHeader() {
-     var statusForEdit = "";
-     var pendingAt = "";
+
      mydb.transaction(function(t) {
          t.executeSql('SELECT * FROM TravelHeader;', [],
              function(transaction, result) {
@@ -4014,6 +4056,9 @@ function viewSettelmentVoucherHeaders(statusOfVoucher) {
                      j('#voucherHeader').empty();
                      for (record = 0; record < result.rows.length; record++) {
                          var row = result.rows.item(record);
+
+                         var statusForEdit = "";
+                         var pendingAt = "";
 
                          if (row.vocherStatus == 'R') {
                              statusForEdit = 'Sent Back';
@@ -4034,6 +4079,7 @@ function viewSettelmentVoucherHeaders(statusOfVoucher) {
                             pendingAt = row.creatorName;
                          }
 
+
                         if(pendingAt == ""){
                             pendingAt = row.currentOwnerName;
                         }
@@ -4048,7 +4094,8 @@ function viewSettelmentVoucherHeaders(statusOfVoucher) {
                          var data =
                              "<div class='col-md-12' onclick='fetchViewForSettelmentDetails(" + row.headerId + ");'>" 
                                 + "<div class='card shadow'>" 
-                                    + "<div class='card-header' style='font-size: 15px;color: #076473;'>" 
+                                    + "<div class='card-header' style='font-size: 15px;color: #076473;'>"
+                                    + "<span style='display: inline;' id = 'isEntitlementExceeded_"+record+"'></span>"
                                          + row.voucherNumber 
                                             +"<h7 style='display: inline;'>&nbsp("+defaultCurrency+")</h7>"
                              + "<label style = 'color:darkorange;float: right;'>" + statusForEdit + "</label></div>" 
@@ -4079,6 +4126,18 @@ function viewSettelmentVoucherHeaders(statusOfVoucher) {
                  + "<br>";
 
                          j('#voucherHeader').append(data);
+
+                        if (row.workflowToBeFollowed == 'D') {
+                            if (window.localStorage.getItem("APPLICATION_VERSION") == false || window.localStorage.getItem("versionNumber") > 12.4) {
+
+                                var buttonValue =
+                                    "<i style='font-size: 12px;color: red;float: left;margin-top: 5px;' class='fa fa-circle'></i>" + "&nbsp;";
+
+                                j('#isEntitlementExceeded_' + record).append(buttonValue);
+
+                            }
+
+                        }
 
                      }
                  }
@@ -4186,8 +4245,7 @@ function viewSettelmentVoucherHeaders(statusOfVoucher) {
  }
 
 function setTravelSettelmentToDetail(headerId, voucherDetailArray, detailBodyLines) {
-     var statusForEdit = "";
-     var pendingAt = "";
+
      mydb.transaction(function(t) {
 
          t.executeSql('SELECT * FROM TravelHeader where headerId = ' + headerId, [],
@@ -4197,7 +4255,8 @@ function setTravelSettelmentToDetail(headerId, voucherDetailArray, detailBodyLin
                      for (record = 0; record < result.rows.length; record++) {
                          var row = result.rows.item(record);
                 
-
+                             var statusForEdit = "";
+                             var pendingAt = "";
 
                          if (row.vocherStatus == 'R') {
                              statusForEdit = 'Sent Back';
@@ -4231,12 +4290,12 @@ function setTravelSettelmentToDetail(headerId, voucherDetailArray, detailBodyLin
                           if (travelTitle.length > 15) {
                             travelTitle = travelTitle.substr(0, 12) + "..";
                          }
-// Neha
 
                          var data =
                              "<div class='col-md-12'>" 
                              + "<div class='card shadow'>" 
-                             + "<div class='card-header' style='font-size: 15px;color: #076473;'>" 
+                             + "<div class='card-header' style='font-size: 15px;color: #076473;'>"
+                             + "<span style='display: inline;' id = 'isEntitlementExceeded_"+record+"'></span>"
                              + row.voucherNumber 
                              +"<h7 style='display: inline;'>&nbsp("+defaultCurrency+")</h7>"
                              +"<label style = 'color:darkorange;float: right;'>" + statusForEdit + "</label></div>"
@@ -4279,13 +4338,32 @@ function setTravelSettelmentToDetail(headerId, voucherDetailArray, detailBodyLin
                          + "</table>" 
                          + "</div>" 
                          + "</div>" 
+
+                         + "<div id = 'policies' style='display: none;' onclick='fetchException("+headerId+","+"5)'>"
+                         + "<td><i class='fa fa-plus-square-o' style='font-size:18px;color:#337ab7;padding: 6px;'> Policies</i></td>"
+                         + "</div>"
+
+                         + "<div id = 'exceptionMsg' style='padding-left: 5px; padding-bottom: 5px; padding-right:5px;'>"
                          + "</div>" 
+                         +"</div>"
                          + "</div>";
 
-                           
 
 
                          j('#voucherDetailsTab').append(data);
+
+                            if (window.localStorage.getItem("APPLICATION_VERSION") == false || window.localStorage.getItem("versionNumber") > 12.4) {
+                                if (row.workflowToBeFollowed == 'D') {
+                                    var buttonValue =
+                                        "<i style='font-size: 12px;color: red;float: left;margin-top: 5px;' class='fa fa-circle'></i>" + "&nbsp;";
+
+                                    j('#isEntitlementExceeded_' + record).append(buttonValue);
+
+                                    document.getElementById('policies').style.display = "block";
+
+                                }
+
+                            }
 
                          if (statusForEdit == 'Sent Back') {
 
@@ -4295,8 +4373,9 @@ function setTravelSettelmentToDetail(headerId, voucherDetailArray, detailBodyLin
                                             +"<br>"
                                             +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.rejectionComments+"</div>"
                                             +"<div><br>"
-                                            +"<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>" + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdTS()'>Edit</button>&nbsp;" 
-                                            +"<button type='submit' id = 'sendForApproveBtn' class='btn btn-primary' onclick='approveTSVoucher(" + row.headerId + ")'>Send For Approval</button>&nbsp;" + "</div>";
+                                          +"<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>"   
+                                           /* + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdTS()'>Edit</button>&nbsp;" */
+                                        +"<button type='submit' id = 'sendForApproveBtn' class='btn btn-primary' onclick='approveTSVoucher(" + row.headerId + ")'>Send For Approval</button>&nbsp;" + "</div>";
 
                              j('#buttonsAttached').append(buttonValue);
                          }
@@ -4304,8 +4383,9 @@ function setTravelSettelmentToDetail(headerId, voucherDetailArray, detailBodyLin
                          if (statusForEdit == 'Draft') {
 
                              buttonValue =  
-                                            "<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>" + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdTS()'>Edit</button>&nbsp;" 
-                                            +"<button type='submit' id = 'sendForApproveBtn' class='btn btn-primary' onclick='approveTSVoucher(" + row.headerId + ")'>Send For Approval</button>&nbsp;" + "</div>";
+                                           "<div class='col-md-12' id = 'editButton' style='text-align: center;padding-bottom: 20px;'>" 
+                                       /*        + "<button type='submit' class='btn btn-primary' onclick='expPrimaryIdTS()'>Edit</button>&nbsp;" */   
+                                         +"<button type='submit' id = 'sendForApproveBtn' class='btn btn-primary' onclick='approveTSVoucher(" + row.headerId + ")'>Send For Approval</button>&nbsp;" + "</div>";
 
                              j('#buttonsAttached').append(buttonValue);
                          }
@@ -4335,19 +4415,42 @@ function setTravelSettelmentToDetail(headerId, voucherDetailArray, detailBodyLin
                         var empId = window.localStorage.getItem("EmployeeId");
                          
                         if(statusForEdit =='In Queries' && enableDivBasedOnStatus == 'A'){
+                            document.getElementById("RejectedBtn").disabled =true;
                             document.getElementById("approveBtn").disabled =true;
                         }   
-                        if(statusForEdit == 'In Queries'  && (empId==row.createdById)){
+
+                        var len = appPageHistory.length;
+                        var pg = appPageHistory[len - 3];
+
+                        if(statusForEdit == 'In Queries'  && (empId==row.createdById) && pg !='app/pages/TRTSAllViews.html'){
                             
                             var ids = row.headerId+'&'+row.queryId;
                        
-                             buttonValue =   
+                            if(row.queryAns == "" || row.queryAns=="undefined" ||row.queryAns=="Null"){
+                                buttonValue =   
                                             "<br>"
                                             +"<div style='margin-left: 2%;'><label>Query Asked To Me:</label>"
                                             +"<br>"
                                             +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.query+"</div>"
                                             +"<div><br>"
-                                            +"<button type='button' id = 'QueryTsBtn' class='btn btn-primary' data-toggle='modal' data-id="+ids+" data-target='#myModalTsQuery'>Reply</button>";
+                                            +"<div class='col-md-12' style='text-align: center;'>"
+                                            +"<button type='button' id = 'QueryTsBtn' class='btn btn-primary' data-toggle='modal' data-id="+ids+" data-target='#myModalTsQuery'>Reply</button>"
+                                            +"</div>"
+                                            ;
+                             }else{
+                                 buttonValue =   
+                                            "<br>"
+                                            +"<div style='margin-left: 2%;'><label>Query Asked To Me:</label>"
+                                            +"<br>"
+                                            +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.query+"</div><br>"
+                                            +"<div style='margin-right: 2%;'><label>Reply:</label>"
+                                            +"<div style='border: 1px;background-color: #eeeeee;padding: 10px 0 10px 10px;box-sizing: border-box;width: 98%;padding-left: 10;'>"+row.queryAns+"</div>"
+                                            +"<div><br>"
+                                            +"<div class='col-md-12' style='text-align: center;'>"
+                                            +"<button type='button' id = 'QueryTsBtn' class='btn btn-primary' data-toggle='modal' data-id="+ids+" data-target='#myModalTsQuery'>Edit</button>"
+                                            +"</div>"
+                                            ;
+                             }
 
                              j('#buttonsAttached').append(buttonValue);
                             
@@ -4434,83 +4537,14 @@ function fetchCountForTravelRequest(statusOfVoucher) {
 
  }
 
-
-function fetchCountForTravelSettelment(statusOfVoucher) {
-
-     var jsonSentToSync = new Object();
-     jsonSentToSync["employeeId"] = window.localStorage.getItem("EmployeeId");
-     jsonSentToSync["processId"] = "5";
-     jsonSentToSync["vocherStatus"] = statusOfVoucher;
-
-     j.ajax({
-         url: window.localStorage.getItem("urlPath") + "FetchCount",
-         type: 'POST',
-         dataType: 'json',
-         crossDomain: true,
-         data: JSON.stringify(jsonSentToSync),
-         success: function(data) {
-
-             if (data.Status == "Success") {
-
-                 var countForVouchers = data.VoucherCount.toString();
-
-
-                if(statusOfVoucher == 'A' && document.getElementById('tsCount') != null){
-                 document.getElementById("tsCount").innerHTML = countForVouchers.match(/\d+/);
-
-                   var totalArray = countForVouchers.split(",");
-
-                    for(var i = 0 ; i < totalArray.length ; i++){
-                        if(totalArray[i].includes("Q") && document.getElementById('tsQueryCount') != null){
-                            document.getElementById("tsQueryCount").innerHTML = totalArray[i].match(/\d+/);
-                     }
-                   }
-                }else{
-                     var arrayOfCount = countForVouchers.split(",");
-
-                     for(var i = 0 ; i < arrayOfCount.length ; i++){
-
-                        if(arrayOfCount[i].includes("D") && document.getElementById('tsDraftCount') != null){
-                            document.getElementById("tsDraftCount").innerHTML = arrayOfCount[i].match(/\d+/);
-                        }
-                        if(arrayOfCount[i].includes("P") && document.getElementById('tsPendingCount') != null){
-                            document.getElementById("tsPendingCount").innerHTML = arrayOfCount[i].match(/\d+/);
-                        }
-                        if(arrayOfCount[i].includes("U") && document.getElementById('tsApprovedUnpaidCount') != null){
-                            document.getElementById("tsApprovedUnpaidCount").innerHTML = arrayOfCount[i].match(/\d+/);
-                        }
-                         if(arrayOfCount[i].includes("F") && document.getElementById('tsApprovedPaidCount') != null){
-                            document.getElementById("tsApprovedPaidCount").innerHTML = arrayOfCount[i].match(/\d+/);
-                        }
-                         if(arrayOfCount[i].includes("R") && document.getElementById('tsSendBackCount') != null){
-                            document.getElementById("tsSendBackCount").innerHTML = arrayOfCount[i].match(/\d+/);
-                        }
-                          if(arrayOfCount[i].includes("Q") && document.getElementById('tsQueryCount') != null){
-                            document.getElementById("tsQueryCount").innerHTML = arrayOfCount[i].match(/\d+/);
-                        }
-
-                     }
-
-                }
-
-                 requestRunning = false;
-             } else {
-                 requestRunning = false;
-             }
-         },
-         error: function(data) {
-             requestRunning = false;
-         }
-     });
-
- }
-function saveTravelSettle(jsonTSArr, tsExpDetailsArr) {
+function saveTravelSettle(jsonTSArr, tsExpDetailsArr, isModeCategoryChecked) {
  var headerBackBtn = defaultPagePath + 'backbtnPage.html';
     var jsonToSaveTS = new Object();
      var travelReqID ;
     jsonToSaveTS["employeeId"] = window.localStorage.getItem("EmployeeId");
     jsonToSaveTS["expenseDetails"] = jsonTSArr;
     jsonToSaveTS["ProcessStatus"] = "1";
+    jsonToSaveTS["isModeCategoryChecked"] = isModeCategoryChecked;
     j("#source tr.selected").each(function(index, row) {
         travelReqID = j(this).find('td.travelRequestId').text();
     });
@@ -4525,15 +4559,33 @@ function saveTravelSettle(jsonTSArr, tsExpDetailsArr) {
         crossDomain: true,
         data: JSON.stringify(jsonToSaveTS),
         success: function(data) {
+             console.log("data.Status : "+data.Status  +" data.Message "+data.Message); 
             if (data.Status == "Success") {
                 successMessage = data.Message;
                 for (var i = 0; i < tsExpDetailsArr.length; i++) {
                     var travelSettleExpDetailId = tsExpDetailsArr[i];
-                    deleteSelectedTSExpDetails(travelSettleExpDetailId);
+                    if(isModeCategoryChecked == "Y"){
+                        deleteSelectedTSExpDetails(travelSettleExpDetailId);
+                    }
                 }
                 requestRunning = false;
                 j('#mainHeader').load(headerBackBtn);
                 j('#mainContainer').load(pageRefSuccess);
+            } else if (data.Status == "WARNING") {
+                requestRunning = false;
+                successMessage = data.Message;
+                if(successMessage != "" && isModeCategoryChecked == "N"){
+                 var confirmBox = confirm(successMessage);
+
+                 if (confirmBox == true) {
+                     saveTravelSettle(jsonTSArr, tsExpDetailsArr, "Y");
+                 } else {
+                     entitlementMsg = false;
+                 }
+                }else{
+                    saveTravelSettle(jsonTSArr, tsExpDetailsArr, "Y");
+                }
+
             } else if (data.Status == "Error") {
                 requestRunning = false;
                 successMessage = "Oops!! Something went wrong. Please contact system administrator.";
@@ -4656,8 +4708,7 @@ function populateTSAmount() {
 /********************    Kunal Coding For Approve Voucher start   *************************/
 
 function fetchViewForSettelmentApproverVouchersHeader() {
-     var statusForEdit = "";
-     var pendingAt = "";
+
      mydb.transaction(function(t) {
          t.executeSql('SELECT * FROM TravelHeader;', [],
              function(transaction, result) {
@@ -4665,6 +4716,9 @@ function fetchViewForSettelmentApproverVouchersHeader() {
                      j('#voucherHeader').empty();
                      for (record = 0; record < result.rows.length; record++) {
                          var row = result.rows.item(record);
+
+                         var statusForEdit = "";
+                         var pendingAt = "";
 
                          if (row.vocherStatus == 'R') {
                              statusForEdit = 'Sent Back';
@@ -4730,6 +4784,17 @@ function fetchViewForSettelmentApproverVouchersHeader() {
                  + "<br>";
 
                          j('#tsVoucherHeader').append(data);
+
+                        if (window.localStorage.getItem("APPLICATION_VERSION") == false || window.localStorage.getItem("versionNumber") > 12.4) {
+                            if (row.workflowToBeFollowed == 'D') {
+                                var buttonValue =
+                                    "<i style='font-size: 12px;color: red;float: left;margin-top: 5px;' class='fa fa-circle'></i>" + "&nbsp;";
+
+                                j('#isEntitlementExceeded_' + record).append(buttonValue);
+
+                            }
+
+                        }
 
                      }
                  }
@@ -4807,7 +4872,7 @@ function fetchViewForSettelmentApproverVouchersHeader() {
 
    function displaySettlementQueryVoucherPage(statusOfVoucher) {
      if (statusOfVoucher == "SUCCESS_NO_DATA") {
-
+              j('#tsQueryData').empty();
               var data = "<div style='text-align: center;'>"
                          +"<p  style='text-align: center;'><img src = 'images/noVoucher1.png'></p>"
                          +"<h4><b style='color: darkgrey;'>No expense available.</b></h4>"
@@ -4821,8 +4886,7 @@ function fetchViewForSettelmentApproverVouchersHeader() {
  }
 
  function fetchViewForSettelmentQueryVouchersHeader() {
-     var statusForEdit = "";
-     var pendingAt = "";
+
      mydb.transaction(function(t) {
          t.executeSql('SELECT * FROM TravelHeader;', [],
              function(transaction, result) {
@@ -4830,6 +4894,9 @@ function fetchViewForSettelmentApproverVouchersHeader() {
                      j('#tsQueryData').empty();
                      for (record = 0; record < result.rows.length; record++) {
                          var row = result.rows.item(record);
+
+                         var statusForEdit = "";
+                         var pendingAt = "";
 
                          if (row.vocherStatus == 'R') {
                              statusForEdit = 'Sent Back';
@@ -4864,7 +4931,8 @@ function fetchViewForSettelmentApproverVouchersHeader() {
                          var data =
                              "<div class='col-md-12' onclick='fetchViewForSettelmentDetails(" + row.headerId + ");'>" 
                                 + "<div class='card shadow'>" 
-                                    + "<div class='card-header' style='font-size: 15px;color: #076473;'>" 
+                                    + "<div class='card-header' style='font-size: 15px;color: #076473;'>"
+                                    +"<span style='display: inline;' id = 'tsEntitlementExceeded_" + record + "'></span>"
                                          + row.voucherNumber 
                                             +"<h7 style='display: inline;'>&nbsp("+defaultCurrency+")</h7>"
                              + "<label style = 'color:darkorange;float: right;'>" + statusForEdit + "</label></div>" 
@@ -4896,6 +4964,16 @@ function fetchViewForSettelmentApproverVouchersHeader() {
 
                          j('#tsQueryData').append(data);
 
+                        if (window.localStorage.getItem("APPLICATION_VERSION") == false || window.localStorage.getItem("versionNumber") > 12.4) {
+                            if (row.workflowToBeFollowed == 'D') {
+                                var buttonValue =
+                                    "<i style='font-size: 12px;color: red;float: left;margin-top: 5px;' class='fa fa-circle'></i>" + "&nbsp;";
+
+                                j('#tsEntitlementExceeded_' + record).append(buttonValue);
+
+                            }
+
+                        }
                      }
                  }
 
@@ -4914,15 +4992,140 @@ function addHeaderForTS() {
     syncSettelmentVoucherHeader(enableDivBasedOnStatus);
 }
 
-function choose(){
 
-    window.plugins.mfilechooser.open([], function (uri) {
+//************************************  Travel Admin -- Start *************************************//
 
-      alert(uri);
+function hideTravelDesk() {
+    if (window.localStorage.getItem("TravelDesk") == "true") {
+        document.getElementById('travelDeskData').style.display = "block";
+        document.getElementById('travelAdmin').style.display = "none";
+         document.getElementById('travelDeskRoundData').style.display = "block";
+          document.getElementById('travelAdminRound').style.display = "none";
+        
+    } else {
+        document.getElementById('travelDeskData').style.display = "none";
+        document.getElementById('travelAdmin').style.display = "block";
+        document.getElementById('travelDeskRoundData').style.display = "none";
+        document.getElementById('travelAdminRound').style.display = "block";
+    }
+}
 
-    }, function (error) {
+//************************************  Travel Admin -- End *************************************//
 
-        alert(error);
 
+function fetchCountForTravelSettelment(statusOfVoucher) {
+     var jsonSentToSync = new Object();
+     jsonSentToSync["employeeId"] = window.localStorage.getItem("EmployeeId");
+     jsonSentToSync["processId"] = "5";
+     jsonSentToSync["vocherStatus"] = statusOfVoucher;
+
+     j.ajax({
+         url: window.localStorage.getItem("urlPath") + "FetchCount",
+         type: 'POST',
+         dataType: 'json',
+         crossDomain: true,
+         data: JSON.stringify(jsonSentToSync),
+         success: function(data) {
+
+             if (data.Status == "Success") {
+
+                 var countForVouchers = data.VoucherCount.toString();
+
+
+                if(statusOfVoucher == 'A' && document.getElementById('tsCount') != null){
+                 document.getElementById("tsCount").innerHTML = countForVouchers.match(/\d+/);
+
+                   var totalArray = countForVouchers.split(",");
+
+                    for(var i = 0 ; i < totalArray.length ; i++){
+                        if(totalArray[i].includes("Q") && document.getElementById('tsQueryCount') != null){
+                            document.getElementById("tsQueryCount").innerHTML = totalArray[i].match(/\d+/);
+                     }
+                   }
+                }else{
+                     var arrayOfCount = countForVouchers.split(",");
+
+                     for(var i = 0 ; i < arrayOfCount.length ; i++){
+
+                        if(arrayOfCount[i].includes("D") && document.getElementById('tsDraftCount') != null){
+                            document.getElementById("tsDraftCount").innerHTML = arrayOfCount[i].match(/\d+/);
+                        }
+                        if(arrayOfCount[i].includes("P") && document.getElementById('tsPendingCount') != null){
+                            document.getElementById("tsPendingCount").innerHTML = arrayOfCount[i].match(/\d+/);
+                        }
+                        if(arrayOfCount[i].includes("U") && document.getElementById('tsApprovedUnpaidCount') != null){
+                            document.getElementById("tsApprovedUnpaidCount").innerHTML = arrayOfCount[i].match(/\d+/);
+                        }
+                         if(arrayOfCount[i].includes("F") && document.getElementById('tsApprovedPaidCount') != null){
+                            document.getElementById("tsApprovedPaidCount").innerHTML = arrayOfCount[i].match(/\d+/);
+                        }
+                         if(arrayOfCount[i].includes("R") && document.getElementById('tsSendBackCount') != null){
+                            document.getElementById("tsSendBackCount").innerHTML = arrayOfCount[i].match(/\d+/);
+                        }
+                          if(arrayOfCount[i].includes("Q") && document.getElementById('tsQueryCount') != null){
+                            document.getElementById("tsQueryCount").innerHTML = arrayOfCount[i].match(/\d+/);
+                        }
+
+                     }
+
+                }
+
+                 requestRunning = false;
+             } else {
+                 requestRunning = false;
+             }
+         },
+         error: function(data) {
+             requestRunning = false;
+         }
+     });
+
+ }
+
+ /**************************** Total Query Count  start****************************************/
+
+ function fetchCountForQuery(statusOfVoucher) {
+     var jsonSentToSync = new Object();
+     jsonSentToSync["employeeId"] = window.localStorage.getItem("EmployeeId");
+     jsonSentToSync["processId"] = "7";
+     jsonSentToSync["vocherStatus"] = statusOfVoucher;
+
+     j.ajax({
+         url: window.localStorage.getItem("urlPath") + "FetchCount",
+         type: 'POST',
+         dataType: 'json',
+         crossDomain: true,
+         data: JSON.stringify(jsonSentToSync),
+         success: function(data) {
+
+             if (data.Status == "Success") {
+
+                 var countForVouchers = data.VoucherCount.toString();
+
+                if(statusOfVoucher == 'Q' && document.getElementById('totalQueryCount') != null){
+                 document.getElementById("totalQueryCount").innerHTML = countForVouchers;
+                }
+
+                requestRunning = false;
+             } else {
+                 requestRunning = false;
+             }
+         },
+         error: function(data) {
+             requestRunning = false;
+         }
+     });
+
+ }
+ /**************************** Total Query Count end ******************************************/
+
+function viewMap() {
+
+    var headerBackBtn = defaultPagePath + 'backbtnPage.html';
+    var pageRef = defaultPagePath + 'OpenStreetMap.html';
+    j(document).ready(function() {
+        j('#mainHeader').load(headerBackBtn);
+        j('#mainContainer').load(pageRef);
     });
+    appPageHistory.push(pageRef);
 }
