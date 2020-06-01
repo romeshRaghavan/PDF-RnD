@@ -102,11 +102,11 @@ alert("source_coordinates :"+source_coordinates);
 
     $.ajax(settings).done(function(response) {
        //alert("response : "+JSON.stringify(response.routes[0]));
-       alert("value :"+JSON.stringify(response.routes[0].distance));
+       //alert("value :"+JSON.stringify(response.routes[0].distance));
 
        var value = JSON.stringify(response.routes[0].distance);
 
-      alert("value :"+value);
+      //alert("value :"+value);
 
        var distance = value/1000;
 
