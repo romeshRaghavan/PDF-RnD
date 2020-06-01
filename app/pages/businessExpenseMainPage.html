@@ -80,7 +80,9 @@
                                                     <a id="mapLink" href="#openModal" style="" onclick="viewMap();">
                                                         <img src="images/google_map_icon.jpg" width="10%" height="10%" onload="loadImage();" id="mapImage" style="display : none;">
                                                     </a>
-                                                   <!-- <img src="images/creditcard.jpg" width="15%" height="15%">-->
+
+                                                   <img src="images/creditcard.jpg" onclick = "openWallet()"
+                                                   width="15%" height="15%">
 
                                                     <img style="display:none;width:40%;height:100px;align:right;" id="smallImageBE" src="" />
                                                     <input style="display:none;" type="file" id="imageBE" />
@@ -144,6 +146,17 @@
                                     return false;
                                 }
                             }
+
+                            function openWallet(){
+                            var headerBackBtn = defaultPagePath + 'backbtnPage.html';
+                            var pageRef = defaultPagePath + 'walletImages.html';
+                            j(document).ready(function() {
+                                j('#mainHeader').load(headerBackBtn);
+                                j('#mainContainer').load(pageRef);
+                            });
+                            //appPageHistory.push(pageRef);
+                            }
+
                         </script>
                     </div>
 

@@ -1,0 +1,134 @@
+<!-- 
+<script language="JavaScript" type="text/javascript" src="js/map.js"></script>
+<style type="text/css">
+   
+      div#search {
+  background-color: white;
+  position: absolute;
+  bottom: 40px;
+  left: 40px;
+  width: auto;
+  height: auto;
+  padding: 10px;
+}
+div#search input {
+  width: 200px;
+}
+div#results {
+  font-style: sans-serif;
+  color: black;
+  font-size: 75%;
+}
+    </style>
+<body>
+<div>
+ 
+  <div id="search">
+  <input type="text" name="addr" value="" id="addr" size="10" />
+  <button type="button" onclick="addr_search();">Search</button>
+  <div id="results"/>
+</div> -->
+
+
+
+
+<script type="text/javascript">
+    var lang = new Lang();
+    lang.dynamic('th', 'js/langpack/th.json');
+    lang.dynamic('ru', 'js/langpack/russian.json');
+    lang.dynamic('ae', 'js/langpack/arabic.json');
+    lang.dynamic('tamil', 'js/langpack/tamil.json');
+    lang.dynamic('hindi', 'js/langpack/hindi.json');
+    lang.dynamic('ka', 'js/langpack/kannada.json');
+    lang.dynamic('sd', 'js/langpack/swidish.json');
+    lang.dynamic('vt', 'js/langpack/vietnam.json');
+    lang.init({
+        defaultLang: 'en'
+    });
+</script>
+<script language="JavaScript" type="text/javascript" src="js/map.js"></script>
+
+    <style>
+        .btn-group-vertical>.btn-group:after,
+        .btn-group-vertical>.btn-group:before,
+        .btn-toolbar:after,
+        .btn-toolbar:before,
+        .clearfix:after,
+        .clearfix:before,
+        .container-fluid:after,
+        .container-fluid:before,
+        .container:after,
+        .container:before,
+        .dl-horizontal dd:after,
+        .dl-horizontal dd:before,
+        .form-horizontal .form-group:after,
+        .form-horizontal .form-group:before,
+        .modal-footer:after,
+        .modal-footer:before,
+        .nav:after,
+        .nav:before,
+        .navbar-collapse:after,
+        .navbar-collapse:before,
+        .navbar-header:after,
+        .navbar-header:before,
+        .navbar:after,
+        .navbar:before,
+        .pager:after,
+        .pager:before,
+        .panel-body:after,
+        .panel-body:before,
+        .row:after,
+        .row:before {
+            display: none;
+            content: " ";
+        }
+        
+        .fa1 {
+            font-size: 80px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            color: lightgray;
+        }
+
+        #profileContent {
+            display: none;
+        }
+
+     div#search {
+  background-color: white;
+  position: absolute;
+  bottom: 40px;
+  left: 40px;
+  width: auto;
+  height: auto;
+  padding: 10px;
+}
+div#search input {
+  width: 200px;
+}
+div#results {
+  font-style: sans-serif;
+  color: black;
+  font-size: 75%;
+}
+
+    </style>
+<body>
+
+
+ <div class="container-fluid" style="padding: 25px;">
+        <div id = "mainContent" class="container-fluid" style="padding: 25px;"> 
+           <div id="search">
+ <!--  <input type="text" name="addr" value="" id="addr" size="10" /> -->
+  <button type="button" onclick="getCurrentLocation();">Start</button>
+
+   <input type="text" name="distance" value="" id="dist" size="10" readonly="true" />
+  <div id="results"/>
+        </div>
+
+         
+    </div>
+
+</body>
+  
+
