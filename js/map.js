@@ -88,7 +88,7 @@ var dest_coordinates = '72.8264,18.9322';
     console.log("source_coordinates : "+source_coordinates);
      console.log("dest_coordinates : "+dest_coordinates);
 
-
+alert("source_coordinates :"+source_coordinates);
     var settings = {
         "async": true,
         "crossDomain": true,
