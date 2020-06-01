@@ -89,10 +89,11 @@ var dest_coordinates = '72.8264,18.9322';
      console.log("dest_coordinates : "+dest_coordinates);
 
 alert("source_coordinates :"+source_coordinates);
+	try{
     var settings = {
         "async": true,
         "crossDomain": true,
-        "url": "http://router.project-osrm.org/route/v1/driving/"+source_coordinates+";"+dest_coordinates+"?overview=false",
+        "url": "https://router.project-osrm.org/route/v1/driving/"+source_coordinates+";"+dest_coordinates+"?overview=false",
         "method": "POST",
         "headers": {
             "cache-control": "no-cache"
@@ -114,7 +115,9 @@ alert("source_coordinates :"+source_coordinates);
        document.getElementById("dist").value = distance;
 
    });
-
+	}catch(e){
+		alert(e);
+	}
 }
 
 
